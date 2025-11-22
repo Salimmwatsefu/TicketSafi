@@ -31,7 +31,7 @@ const Hero = () => {
     setActiveIndex((prev) => (prev === 0 ? events.length - 1 : prev - 1));
   };
 
-  const containerVariants = {
+  const containerVariants: any = {
     enter: (dir: number) => ({ x: dir > 0 ? 20 : -20, opacity: 0 }),
     center: { x: 0, opacity: 1, transition: { duration: 0.4, ease: "easeOut", staggerChildren: 0.1 } },
     exit: (dir: number) => ({ x: dir < 0 ? 20 : -20, opacity: 0, transition: { duration: 0.3 } })
