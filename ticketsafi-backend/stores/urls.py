@@ -1,12 +1,16 @@
 from django.urls import path
-from .views import StoreDetailView, StoreListView, StoreCreateView, StoreUpdateView
+from .views import (
+    StoreDetailView, StoreListView, StoreCreateView, 
+    StoreUpdateView, OrganizerStoreListView
+)
 
 urlpatterns = [
-    # Organizer Management Routes
-    path('manage/', StoreUpdateView.as_view(), name='organizer-store-manage'), # Use PATCH/PUT for existing store
-    path('create/', StoreCreateView.as_view(), name='organizer-store-create'),  # Use POST for new store
+    # Organizer Routes
+    path('organizer/list/', OrganizerStoreListView.as_view(), name='organizer-store-list'),
+    path('create/', StoreCreateView.as_view(), name='organizer-store-create'),
+    path('manage/<uuid:id>/', StoreUpdateView.as_view(), name='organizer-store-update'),
 
-    # Public Discovery Routes
-    path('', StoreListView.as_view(), name='store-list'),
-    path('<slug:slug>/', StoreDetailView.as_view(), name='store-detail'),
+    # Public Routes
+    path('', StoreListView.as_view(), name='public-store-list'),
+    path('<slug:slug>/', StoreDetailView.as_view(), name='public-store-detail'),
 ]

@@ -32,6 +32,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await api.get('/api/auth/user/');
       setUser(response.data);
+
+      if (response.data.role === 'SCANNER' && window.location.pathname !== '/scanner') {
+          window.location.href = '/scanner';
+      }
+      
     } catch (err) {
       setUser(null);
     } finally {

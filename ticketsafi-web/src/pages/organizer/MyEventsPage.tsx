@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Calendar, MapPin, MoreHorizontal, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, MapPin, MoreHorizontal, Loader2, AlertCircle, Store } from 'lucide-react';
 import { useOrganizerEvents } from '../../hooks/useOrganizerEvents';
 
 const MyEventsPage = () => {
@@ -79,8 +79,15 @@ const MyEventsPage = () => {
 
                       {/* Info */}
                       <div className="flex-1 text-center md:text-left">
-                          <h3 className="font-heading font-bold text-white text-lg mb-1">{event.title}</h3>
-                          <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-zinc-400">
+                          <h3 className="font-heading font-bold text-white text-lg mb-2">{event.title}</h3>
+                          {/* --- STORE BADGE --- */}
+            {event.store && (
+                <span className="px-2 py-0.5 w-fit rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold uppercase tracking-wider flex items-center">
+                    <Store className="w-3 h-3 mr-1" />
+                    {event.store.name}
+                </span>
+            )}
+                          <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-zinc-400 mt-2">
                               <div className="flex items-center">
                                   <Calendar className="w-4 h-4 mr-1.5 text-primary" />
                                   {event.date}

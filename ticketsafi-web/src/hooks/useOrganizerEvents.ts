@@ -22,6 +22,7 @@ export const useOrganizerEvents = () => {
         const response = await api.get('/api/organizer/events/');
         
         const mappedEvents = response.data.map((item: any) => ({
+            
             id: item.id,
             title: item.title,
             date: new Date(item.start_datetime).toLocaleDateString('en-US', { 
@@ -37,7 +38,16 @@ export const useOrganizerEvents = () => {
             // For now we infer or use defaults
             status: 'Active', 
             sold: 0, // Needs backend aggregation in ListSerializer to be accurate
-            revenue: 0
+            revenue: 0,
+            store: item.store ? {
+    id: item.store.id,
+    name: item.store.name,
+    slug: item.store.slug,
+    logo_image: item.store.logo_image 
+        ? (item.store.logo_image.startsWith('http') ? item.store.logo_image : `http://localhost:8000${item.store.logo_image}`)
+        : null
+} : null,
+            
         }));
 
         setEvents(mappedEvents);

@@ -12,6 +12,7 @@ interface BackendEvent {
     organizer_name: string;
     description: string;
     category: string; 
+    
 }
 
 export const useEvents = (
@@ -72,6 +73,7 @@ export const useEvents = (
                         price: `KES ${item.lowest_price.toLocaleString()}`,
                         category: item.category as any,
                         isSellingFast: false, 
+                        
                     };
                 });
 

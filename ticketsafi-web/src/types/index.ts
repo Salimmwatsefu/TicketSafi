@@ -2,8 +2,15 @@ export interface TicketTier {
   id: string;
   name: string;
   description: string;
-  price: string; // We will format this as string "1,500.00" from backend
+  price: string;
   available_qty: number;
+}
+
+export interface Store {
+    id: string;
+    name: string;
+    slug: string;
+    logo_image: string | null;
 }
 
 export interface Event {
@@ -15,7 +22,8 @@ export interface Event {
   imageUrl: string;
   category: 'Concert' | 'Nightlife' | 'Festival' | 'Theatre';
   isSellingFast?: boolean;
-  description?: string; // Added for details page
-  tiers?: TicketTier[]; // Added for details page
+  description?: string;
+  tiers?: TicketTier[];
   organizer_name?: string;
+  store?: Store | null; 
 }

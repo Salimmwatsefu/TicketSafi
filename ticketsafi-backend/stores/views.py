@@ -1,58 +1,50 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from django.db.models import Q # For searching across fields
-from django.utils.text import slugify
-
 from .models import Store
 from .serializers import StoreSerializer
 from events.models import Event
 from events.serializers import EventListSerializer
-
+from django.utils import timezone
 
 # --- ORGANIZER MANAGEMENT VIEWS ---
 
+class OrganizerStoreListView(generics.ListAPIView):
+    """ Lists all stores owned by the logged-in organizer """
+    serializer_class = StoreSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Store.objects.filter(organizer=self.request.user)
+
 class StoreCreateView(generics.CreateAPIView):
-    """
-    Endpoint for Organizers to create their first store profile.
-    Uses POST /api/stores/create/
-    """
+    """ Create a new store """
     queryset = Store.objects.all()
     serializer_class = StoreSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        # 1. Check if the user already has a store
-        if hasattr(self.request.user, 'store'):
-            # Allow creation if the user is an organizer, but raise a 409 conflict
-            return Response({"error": "Organizer already has a store."}, status=status.HTTP_409_CONFLICT)
-        
-        # 2. Auto-set organizer and save
+        # REMOVED: The check restricting one store per user
         serializer.save(organizer=self.request.user)
 
 class StoreUpdateView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Endpoint for Organizers to view, update, or delete their existing store.
-    Uses GET/PATCH/DELETE /api/stores/manage/
-    """
+    """ Update/Delete a specific store by UUID """
     queryset = Store.objects.all()
     serializer_class = StoreSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
-    # Override get_object to only retrieve the currently logged-in user's store
-    def get_object(self):
-        try:
-            return self.request.user.store
-        except Store.DoesNotExist:
-            raise generics.exceptions.NotFound("Store profile does not exist for this organizer.")
+    lookup_field = 'id' # Changed from default logic to explicit ID lookup
 
-# --- PUBLIC FACING VIEWS ---
+    def get_queryset(self):
+        return Store.objects.filter(organizer=self.request.user)
+
+# --- PUBLIC VIEWS ---
+
+class StoreListView(generics.ListAPIView):
+    """ Public list of all stores """
+    queryset = Store.objects.all().order_by('name')
+    serializer_class = StoreSerializer
 
 class StoreDetailView(generics.RetrieveAPIView):
-    """
-    Public endpoint to view a single store and its events (microsite).
-    Uses GET /api/stores/<slug>/
-    """
+    """ Public store page with events """
     queryset = Store.objects.all()
     serializer_class = StoreSerializer
     lookup_field = 'slug'
@@ -61,26 +53,15 @@ class StoreDetailView(generics.RetrieveAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         
-        # Fetch all published events for this store's organizer
+        # Fetch events linked to THIS specific store
         events = Event.objects.filter(
-            organizer=instance.organizer,
+            store=instance, # CHANGED: Filter by store, not just organizer
             is_published=True,
             end_datetime__gt=timezone.now()
         ).order_by('start_datetime')
         
-        # Use the EventListSerializer from the events app
         event_serializer = EventListSerializer(events, many=True, context={'request': request})
         
-        # Combine store data and event list
         data = serializer.data
         data['events'] = event_serializer.data
-        
         return Response(data)
-
-class StoreListView(generics.ListAPIView):
-    """
-    Public endpoint to list all existing stores.
-    Uses GET /api/stores/
-    """
-    queryset = Store.objects.all().order_by('name')
-    serializer_class = StoreSerializer

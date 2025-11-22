@@ -10,9 +10,10 @@ from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from dj_rest_auth.registration.views import SocialLoginView
 
 from .models import User, Event, Ticket, TicketTier, Payment
-from .serializers import EventListSerializer, EventDetailSerializer, EventCreateUpdateSerializer, TicketSerializer
+from .serializers import EventListSerializer, EventDetailSerializer, EventCreateUpdateSerializer, TicketSerializer, UserSerializer
 from .utils import send_ticket_email
-from events import models # Utility for ticket attachment
+from events import models 
+from rest_framework.views import APIView
 
 # --- AUTH RELATED VIEWS ---
 
@@ -23,7 +24,8 @@ def password_reset_confirm_redirect(request, uidb64, token):
 
 
 class GoogleLogin(SocialLoginView):
-    authentication_backends = [GoogleOAuth2Adapter]
+    # FIX: Use 'adapter_class', NOT 'authentication_backends'
+    adapter_class = GoogleOAuth2Adapter
 
 
 # --- PUBLIC FACING VIEWS ---
@@ -292,3 +294,105 @@ class OrganizerEventAttendeesView(generics.ListAPIView):
         event = get_object_or_404(Event, id=event_id, organizer=self.request.user)
         # 2. Return all tickets for that event
         return Ticket.objects.filter(event=event).order_by('purchase_date')
+    
+
+
+
+class VerifyTicketView(APIView):
+    """
+    Endpoint for Gate Scanners to verify tickets.
+    POST /api/scanner/verify/
+    Payload: { "qr_hash": "..." }
+    """
+    permission_classes = [permissions.IsAuthenticated] 
+
+    def post(self, request):
+        # 1. Permission Check
+        if request.user.role not in [User.Role.ORGANIZER, User.Role.SCANNER]:
+            return Response({"error": "Unauthorized. Only scanners can verify tickets."}, status=status.HTTP_403_FORBIDDEN)
+
+        qr_hash = request.data.get('qr_hash')
+        if not qr_hash:
+            return Response({"error": "No QR code provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 2. Lookup Ticket
+            ticket = Ticket.objects.get(qr_code_hash=qr_hash)
+            
+            # 3. Check Event Ownership (If user is Organizer)
+            if request.user.role == User.Role.ORGANIZER and ticket.event.organizer != request.user:
+                 return Response({"error": "This ticket does not belong to your event."}, status=status.HTTP_403_FORBIDDEN)
+
+            # 4. Validate Status
+            if ticket.status == Ticket.Status.CHECKED_IN:
+                return Response({
+                    "error": "ALREADY USED",
+                    "attendee_name": ticket.attendee_name,
+                    "tier_name": ticket.tier.name,
+                    "checked_in_at": ticket.checked_in_at
+                }, status=status.HTTP_409_CONFLICT)
+            
+            if ticket.status != Ticket.Status.ACTIVE:
+                return Response({"error": f"Invalid Ticket Status: {ticket.status}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 5. SUCCESS: Check In
+            ticket.status = Ticket.Status.CHECKED_IN
+            ticket.checked_in_at = timezone.now()
+            ticket.checked_in_by = request.user
+            ticket.save()
+
+            return Response({
+                "status": "VALID",
+                "attendee_name": ticket.attendee_name,
+                "tier_name": ticket.tier.name,
+                "event": ticket.event.title
+            }, status=status.HTTP_200_OK)
+
+        except Ticket.DoesNotExist:
+            return Response({"error": "Ticket Not Found"}, status=status.HTTP_404_NOT_FOUND)
+        
+
+
+# --- TEAM MANAGEMENT VIEWS ---
+
+class ScannerListView(generics.ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Logic to get scanners created by this organizer
+        # For MVP, just returning all scanners might be a security risk in prod if not filtered.
+        # Ideally: User model should have `created_by` field.
+        # For now, let's just filter by role=SCANNER. In a real app, filter by `created_by=self.request.user`
+        return User.objects.filter(role=User.Role.SCANNER) 
+
+class ScannerCreateView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        # Check if user is organizer
+        if request.user.role != User.Role.ORGANIZER:
+            return Response({"error": "Only organizers can create scanners."}, status=status.HTTP_403_FORBIDDEN)
+
+        data = request.data
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email', '')
+
+        if not username or not password:
+            return Response({"error": "Username and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=username).exists():
+            return Response({"error": "Username already taken."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create User
+        user = User.objects.create_user(username=username, email=email, password=password)
+        user.role = User.Role.SCANNER
+        user.save()
+
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": "SCANNER"
+        }, status=status.HTTP_201_CREATED)

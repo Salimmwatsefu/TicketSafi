@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -7,12 +7,12 @@ import {
   LogOut, 
   PlusCircle,
   Store,
-  Loader2,
-  Ticket
+  Ticket,
+  Users,
+  Loader2
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../api/axios'; // Need for store check
 
 interface OrganizerLayoutProps {
   children: React.ReactNode;
@@ -32,84 +32,34 @@ const SidebarItem = ({ icon: Icon, label, path, active, onClick }: { icon: any, 
   </button>
 );
 
-// --- Store Status Check Wrapper (Critical for redirect logic) ---
-const StoreCheckWrapper: React.FC<{ children: React.ReactNode, isStoreCreationPage: boolean }> = ({ children, isStoreCreationPage }) => {
-    const { user } = useAuth();
-    const navigate = useNavigate();
-    const [storeStatus, setStoreStatus] = useState<'loading' | 'exists' | 'none'>('loading');
-
-    useEffect(() => {
-        if (!user || user.role !== 'ORGANIZER') {
-            setStoreStatus('none');
-            return;
-        }
-
-        let isMounted = true;
-        const checkStore = async () => {
-            try {
-                await api.get('/api/stores/manage/'); 
-                if (isMounted) setStoreStatus('exists');
-            } catch (err: any) {
-                if (err.response?.status === 404) {
-                    if (isMounted) setStoreStatus('none');
-                } else {
-                    console.error("Store check failed:", err);
-                    if (isMounted) setStoreStatus('none');
-                }
-            }
-        };
-
-        // Delay the check slightly to give the user context loads time
-        const timer = setTimeout(() => {
-            checkStore();
-        }, 100); 
-
-        return () => {
-            isMounted = false;
-            clearTimeout(timer);
-        };
-    }, [user]);
-
-    // **FIXED REDIRECT LOGIC**
-    useEffect(() => {
-        // 1. If Store DNE AND user is NOT on Create page, redirect to Create.
-        if (storeStatus === 'none' && !isStoreCreationPage) {
-            navigate('/organizer/store/create', { replace: true });
-        }
-        
-        // 2. If Store exists AND user IS on Create page, redirect to Dashboard.
-        if (storeStatus === 'exists' && isStoreCreationPage) {
-            navigate('/organizer', { replace: true });
-        }
-    }, [storeStatus, isStoreCreationPage, navigate]);
-
-    // RENDER LOGIC
-    if (user?.role === 'ORGANIZER' && storeStatus === 'loading') {
-        return (
-             <div className="flex justify-center items-center h-screen">
-                <Loader2 className="w-8 h-8 animate-spin text-secondary"/>
-                <p className="text-zinc-400 ml-3">Loading Portal...</p>
-             </div>
-        );
-    }
-    
-    // RENDER CHILDREN ONLY when state is settled and redirection is handled
-    return <>{children}</>;
-};
-
-// --- Main Layout ---
 const OrganizerLayout: React.FC<OrganizerLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { logout, user, loading } = useAuth();
   
-  const isStoreCreationPage = location.pathname.includes('/store/create');
+  // --- STRICT ROLE CHECK ---
+  useEffect(() => {
+      if (!loading) {
+          if (!user) {
+              navigate('/login/organizer');
+          } else if (user.role === 'SCANNER') {
+              // Kick scanners out immediately
+              navigate('/scanner', { replace: true });
+          } else if (user.role === 'ATTENDEE') {
+              // Kick attendees out
+              navigate('/');
+          }
+      }
+  }, [user, loading, navigate]);
 
-  const handleSidebarClick = (path: string) => {
-    // Navigate directly, letting the StoreCheckWrapper handle any necessary redirection logic
-    navigate(path);
-  };
-
+  if (loading || !user || user.role !== 'ORGANIZER') {
+      return (
+          <div className="h-screen w-screen bg-background flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+      );
+  }
+  // -------------------------
 
   return (
     <div className="min-h-screen bg-background flex font-sans">
@@ -136,14 +86,14 @@ const OrganizerLayout: React.FC<OrganizerLayoutProps> = ({ children }) => {
             label="Dashboard" 
             path="/organizer"
             active={location.pathname === '/organizer'} 
-            onClick={() => handleSidebarClick('/organizer')}
+            onClick={() => navigate('/organizer')}
           />
           <SidebarItem 
             icon={Calendar} 
             label="My Events" 
             path="/organizer/events" 
-            active={location.pathname.includes('/events') && !isStoreCreationPage}
-            onClick={() => handleSidebarClick('/organizer/events')}
+            active={location.pathname.includes('/events')}
+            onClick={() => navigate('/organizer/events')}
           />
           <SidebarItem 
             icon={Wallet} 
@@ -155,21 +105,28 @@ const OrganizerLayout: React.FC<OrganizerLayoutProps> = ({ children }) => {
 
           <p className="text-xs font-bold text-zinc-600 uppercase tracking-wider mb-3 px-3 mt-8">Tools</p>
           
-          {/* New Store Button */}
           <SidebarItem 
             icon={Store} 
-            label="Store Profile" 
-            path="/organizer/store/manage" 
-            active={location.pathname.includes('/store/manage') || isStoreCreationPage}
-            onClick={() => handleSidebarClick('/organizer/store/manage')} 
+            label="My Stores" 
+            path="/organizer/stores" 
+            active={location.pathname.includes('/organizer/stores') || location.pathname.includes('/store/create')}
+            onClick={() => navigate('/organizer/stores')} 
           />
           
+          <SidebarItem 
+            icon={Users} 
+            label="Gate Team" 
+            path="/organizer/team" 
+            active={location.pathname.includes('/organizer/team')}
+            onClick={() => navigate('/organizer/team')} 
+          />
+
           <SidebarItem 
             icon={PlusCircle} 
             label="Create Event" 
             path="/organizer/create" 
             active={location.pathname === '/organizer/create'}
-            onClick={() => handleSidebarClick('/organizer/create')} 
+            onClick={() => navigate('/organizer/create')} 
           />
           <SidebarItem 
             icon={Settings} 
@@ -196,18 +153,15 @@ const OrganizerLayout: React.FC<OrganizerLayoutProps> = ({ children }) => {
       <main className="flex-1 md:ml-64 min-h-screen bg-background relative">
         <header className="h-16 border-b border-white/5 bg-surface/50 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-40">
           <h2 className="text-sm font-medium text-zinc-400">
-            {location.pathname.includes('/events') ? 'Event Management' : 'Dashboard'}
+            Organizer Portal
           </h2>
           <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold border-2 border-white shadow-sm">
              {user?.username?.[0]?.toUpperCase() || 'U'}
           </div>
         </header>
 
-        {/* View Rendering wrapped in Store Check */}
         <div className="p-6 md:p-8 max-w-7xl mx-auto animate-fade-in">
-          <StoreCheckWrapper isStoreCreationPage={isStoreCreationPage}>
              {children}
-          </StoreCheckWrapper>
         </div>
       </main>
     </div>

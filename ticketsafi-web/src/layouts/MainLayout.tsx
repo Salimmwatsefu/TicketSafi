@@ -1,6 +1,6 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Ticket, Menu, LogIn, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Ticket, Menu, ChevronRight, X, Calendar, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import UserMenu from '../components/UserMenu';
 
@@ -10,20 +10,29 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading } = useAuth();
+  
+  // State for Mobile Menu
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleNav = (path: string) => {
+      navigate(path);
+      setIsMobileMenuOpen(false);
+  };
 
   return (
-    <div className="min-h-screen bg-background text-white selection:bg-primary selection:text-white flex flex-col">
+    <div className="min-h-screen bg-background text-white selection:bg-primary selection:text-white flex flex-col font-sans">
       
-      {/* --- STANDARD STICKY NAVBAR --- */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
+      {/* --- NAVBAR --- */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
           
-          {/* 1. Logo Section & Brand Text */}
+          {/* 1. Logo */}
           <div className="flex items-center gap-6">
             <div 
               className="flex items-center space-x-3 cursor-pointer group" 
-              onClick={() => navigate('/')}
+              onClick={() => handleNav('/')}
             >
               <div className="relative w-10 h-10 flex items-center justify-center">
                   <div className="absolute inset-0 bg-neon-gradient rounded-xl blur opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -36,35 +45,43 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </span>
             </div>
 
-            {/* NEW: Experience Live Text in Nav */}
+            {/* Desktop Nav Links */}
             <div className="hidden md:block h-6 w-px bg-white/10"></div>
-            <h1 className="hidden md:flex items-center text-lg font-heading font-bold text-white leading-tight">
-                Experience&nbsp;
-                {/* FIX: Added inline-block and adjusted gradient classes for visibility */}
-                <span className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-secondary animate-gradient-x ">
-                  Live.
-                </span>
-            </h1>
+            <div className="hidden md:flex items-center space-x-6">
+                <button 
+                    onClick={() => navigate('/')} 
+                    className={`text-sm font-medium transition-colors ${location.pathname === '/' ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                >
+                    Events
+                </button>
+                <button 
+                    onClick={() => navigate('/stores')} 
+                    className={`text-sm font-medium transition-colors ${location.pathname.includes('/stores') ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                >
+                    Creators
+                </button>
+            </div>
           </div>
           
-          {/* 2. User Actions */}
+          {/* 2. Actions */}
           <div className="flex items-center space-x-4">
             
             {/* Mobile Menu Toggle */}
-            <button className="md:hidden p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
-              <Menu className="w-6 h-6" />
+            <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors relative z-50"
+            >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            {/* --- DYNAMIC AUTH SECTION --- */}
+            {/* Auth (Desktop & Mobile Header) */}
             {!loading && (
               <>
                 {user ? (
-                  // State 1: Logged In -> Show Menu
-                  <div className="pl-4 border-l border-white/10">
+                  <div className="pl-0 md:pl-4 border-l-0 md:border-l border-white/10">
                     <UserMenu />
                   </div>
                 ) : (
-                  // State 2: Guest -> Show Login Button
                   <button 
                     onClick={() => navigate('/login')}
                     className="group relative flex items-center space-x-2 px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all overflow-hidden"
@@ -78,8 +95,29 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </>
             )}
           </div>
-
         </div>
+
+        {/* --- MOBILE MENU DROPDOWN --- */}
+        {isMobileMenuOpen && (
+            <div className="md:hidden absolute top-20 left-0 w-full bg-background border-b border-white/10 shadow-2xl animate-slide-up">
+                <div className="p-4 space-y-2">
+                    <button 
+                        onClick={() => handleNav('/')}
+                        className={`w-full flex items-center p-4 rounded-xl transition-colors ${location.pathname === '/' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
+                    >
+                        <Calendar className="w-5 h-5 mr-3" />
+                        <span className="font-bold">Discover Events</span>
+                    </button>
+                    <button 
+                        onClick={() => handleNav('/stores')}
+                        className={`w-full flex items-center p-4 rounded-xl transition-colors ${location.pathname.includes('/stores') ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
+                    >
+                        <Users className="w-5 h-5 mr-3" />
+                        <span className="font-bold">Browse Creators</span>
+                    </button>
+                </div>
+            </div>
+        )}
       </nav>
 
       {/* --- PAGE CONTENT --- */}
@@ -96,9 +134,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </div>
           <p className="hidden md:block">&copy; 2025 TicketSafi Kenya.</p>
           <div className="flex space-x-8">
-            <span className="hover:text-primary cursor-pointer transition-colors hover:underline decoration-primary/50 underline-offset-4">Privacy</span>
-            <span className="hover:text-primary cursor-pointer transition-colors hover:underline decoration-primary/50 underline-offset-4">Terms</span>
-            <span className="hover:text-primary cursor-pointer transition-colors hover:underline decoration-primary/50 underline-offset-4">Organizers</span>
+            <span className="hover:text-primary cursor-pointer transition-colors">Privacy</span>
+            <span className="hover:text-primary cursor-pointer transition-colors">Terms</span>
+            <span className="hover:text-primary cursor-pointer transition-colors">Organizers</span>
           </div>
         </div>
       </footer>

@@ -16,6 +16,11 @@ import MyEventsPage from './pages/organizer/MyEventsPage';
 import EditEventPage from './pages/organizer/EditEventPage'; 
 import OrganizerEventDetailsPage from './pages/organizer/OrganizerEventDetailsPage';
 import CreateStorePage from './pages/organizer/CreateStorePage';
+import MyStoresPage from './pages/organizer/MyStoresPage';
+import StoresListPage from './pages/StoresListPage';
+import StorePage from './pages/StorePage';
+import EditStorePage from './pages/organizer/EditStorePage';
+
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -23,6 +28,10 @@ import RegisterPage from './pages/auth/RegisterPage';
 import AuthSelectionPage from './pages/auth/AuthSelectionPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import PasswordResetConfirmPage from './pages/auth/PasswordResetConfirmPage';
+import ScannerPage from './pages/scanner/ScannerPage';
+
+import ScannerRoute from './layouts/ScannerRoute';
+import TeamPage from './pages/organizer/TeamPage';
 
 
 const OrganizerRoute = ({ children }: { children: React.ReactNode }) => (
@@ -47,6 +56,8 @@ function App() {
           {/* Parametrized Routes */}
           <Route path="/login/:type" element={<LoginPage />} />
           <Route path="/register/:type" element={<RegisterPage />} />
+
+          
 
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             {/* This route handles the link sent in email (e.g., /password-reset/confirm/MQ/5z8-...) */}
@@ -76,6 +87,9 @@ function App() {
                 <MyTicketsPage />
               </MainLayout>
             } />
+
+            <Route path="/stores" element={<MainLayout><StoresListPage /></MainLayout>} />
+<Route path="/stores/:slug" element={<MainLayout><StorePage /></MainLayout>} />
 
            {/* --- ORGANIZER ROUTES (Organizer Layout) --- */}
         <Route path="/organizer" element={
@@ -119,6 +133,19 @@ function App() {
             <CreateStorePage />
           </OrganizerRoute>
         } />
+
+        <Route path="/organizer/stores" element={<OrganizerRoute><MyStoresPage /></OrganizerRoute>} />
+
+        <Route path="/organizer/store/:id/edit" element={<OrganizerRoute><EditStorePage /></OrganizerRoute>} />
+
+        <Route path="/organizer/team" element={<OrganizerRoute><TeamPage /></OrganizerRoute>} />
+
+
+        <Route path="/scanner" element={
+              <ScannerRoute>
+                <ScannerPage />
+              </ScannerRoute>
+            } />
 
           </Routes>
         </Router>

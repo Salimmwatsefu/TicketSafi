@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, ArrowLeft, Share2, Info, CheckCircle2, Ticket as TicketIcon } from 'lucide-react';
+import { MapPin, Calendar, ArrowLeft, Share2, Info, CheckCircle2, Ticket as TicketIcon, ExternalLink, Store } from 'lucide-react';
 import { useEventDetails } from '../hooks/useEventDetails';
 import CheckoutModal from '../components/CheckoutModal';
 
@@ -85,6 +85,29 @@ const EventDetailsPage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent opacity-60" />
                   </div>
 
+                    {/* --- STORE / ORGANIZER CARD --- */}
+{event.store ? (
+    <div className="bg-gradient-to-br from-zinc-900 to-black border border-white/10 p-1 rounded-3xl shadow-xl mb-6 group cursor-pointer relative overflow-hidden" onClick={() => navigate(`/stores/${event.store?.slug}`)}>
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="bg-surface-highlight/50 backdrop-blur-sm rounded-[20px] p-4 flex items-center gap-4 relative z-10">
+            <div className="w-12 h-12 rounded-xl bg-black border border-white/10 overflow-hidden shrink-0">
+                {event.store.logo_image ? (
+                    <img src={event.store.logo_image} className="w-full h-full object-cover" alt={event.store.name} />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-zinc-600"><Store className="w-6 h-6" /></div>
+                )}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Presented By</p>
+                <h4 className="text-white font-bold truncate flex items-center gap-2">
+                    {event.store.name}
+                    <ExternalLink className="w-3 h-3 text-zinc-500 group-hover:text-white transition-colors" />
+                </h4>
+            </div>
+        </div>
+    </div>
+) : null}
+
                   {/* About Section */}
                   <div className="bg-surface/50 backdrop-blur-sm border border-white/5 p-8 rounded-3xl">
                       <h3 className="text-2xl font-heading font-bold text-white mb-6 flex items-center">
@@ -97,6 +120,8 @@ const EventDetailsPage = () => {
                           </p>
                       </div>
                   </div>
+
+                
               </div>
 
               {/* RIGHT COLUMN: Details & Tickets (Span 5) */}

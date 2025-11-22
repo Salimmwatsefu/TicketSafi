@@ -3,6 +3,7 @@ import { useNavigate, Link, useParams } from 'react-router-dom';
 import { Ticket, Mail, Lock, Loader2, User, Briefcase } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -50,6 +51,8 @@ const LoginPage = () => {
     onError: () => setError('Google Sign-In failed.'),
   });
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -69,7 +72,21 @@ const LoginPage = () => {
         }
 
         await login(loginPayload);
-        navigate(config.redirectPath);
+        
+        // --- STRICT REDIRECT LOGIC ---
+        // Fetch user details to determine role and redirect accordingly
+        const userRes = await api.get('/api/auth/user/');
+        const role = userRes.data.role;
+
+        if (role === 'SCANNER') {
+            navigate('/scanner', { replace: true }); // Strict redirect for scanners
+        } else if (role === 'ORGANIZER') {
+             navigate('/organizer'); // Redirect organizers to dashboard
+        } else {
+             navigate(config.redirectPath); // Default redirect for attendees
+        }
+        // -----------------------------
+
     } catch (err: any) {
         console.error(err);
         // If authentication fails, it might be a shadow user with no password

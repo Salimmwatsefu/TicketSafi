@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Calendar, MapPin, Upload, Plus, Trash2, DollarSign, Ticket, CheckCircle, Loader2, X, Save, ArrowLeft } from 'lucide-react';
+import { Calendar, MapPin, Upload, Plus, Trash2, DollarSign, Ticket, CheckCircle, Loader2, X, Save, ArrowLeft, Store, Lock } from 'lucide-react';
 import api from '../../api/axios';
 
 interface TierFormData {
-  id?: string; // Existing tiers have IDs
+  id?: string;
   name: string;
   description: string;
   price: string;
   quantity_allocated: string;
+  quantity_sold?: number; // Added this field
+}
+
+interface StoreOption {
+    id: string;
+    name: string;
 }
 
 const EditEventPage = () => {
@@ -19,77 +25,85 @@ const EditEventPage = () => {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Form State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
-  // Image State
+  const [myStores, setMyStores] = useState<StoreOption[]>([]);
+  const [selectedStore, setSelectedStore] = useState('');
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   const [tiers, setTiers] = useState<TierFormData[]>([]);
 
-  // 1. Fetch Existing Data
   useEffect(() => {
-    const fetchEvent = async () => {
+    const fetchData = async () => {
       try {
-        // Use the edit endpoint (GET) to retrieve data securely
-        const response = await api.get(`/api/organizer/events/${id}/edit/`);
-        const data = response.data;
+        const eventRes = await api.get(`/api/organizer/events/${id}/edit/`);
+        const data = eventRes.data;
 
         setTitle(data.title);
         setDescription(data.description);
         setLocation(data.location_name);
         
-        // Format dates for input[type="datetime-local"] (YYYY-MM-DDTHH:mm)
         if (data.start_datetime) setStartDate(data.start_datetime.slice(0, 16));
         if (data.end_datetime) setEndDate(data.end_datetime.slice(0, 16));
 
+        if (data.store) setSelectedStore(data.store);
+
         if (data.poster_image) {
-             // Determine full URL
              const imgUrl = data.poster_image.startsWith('http') 
                 ? data.poster_image 
                 : `http://localhost:8000${data.poster_image}`;
              setImagePreview(imgUrl);
         }
 
-        // Load Tiers
+        // Populate Tiers
         if (data.tiers) {
             setTiers(data.tiers.map((t: any) => ({
                 id: t.id,
                 name: t.name,
                 description: t.description,
                 price: t.price.toString(),
-                quantity_allocated: t.quantity_allocated.toString()
+                quantity_allocated: t.quantity_allocated.toString(),
+                quantity_sold: t.quantity_sold || 0 // Capture sales data
             })));
         }
 
+        const storesRes = await api.get('/api/stores/organizer/list/');
+        setMyStores(storesRes.data);
+
       } catch (err) {
-        console.error("Failed to load event", err);
+        console.error("Failed to load event data", err);
         alert("Could not load event details.");
         navigate('/organizer/events');
       } finally {
         setLoading(false);
       }
     };
-    fetchEvent();
+    fetchData();
   }, [id, navigate]);
 
-  // ... (Reuse logic from CreateEventPage for adding/removing tiers/images) ...
   const handleAddTier = () => {
     setTiers([...tiers, { name: '', description: '', price: '', quantity_allocated: '' }]);
   };
 
   const handleRemoveTier = (index: number) => {
+    const tier = tiers[index];
+    // Prevent deletion on frontend if tickets are sold
+    if (tier.quantity_sold && tier.quantity_sold > 0) {
+        alert(`Cannot delete "${tier.name}" because ${tier.quantity_sold} tickets have already been sold.`);
+        return;
+    }
     setTiers(tiers.filter((_, i) => i !== index));
   };
 
   const handleTierChange = (index: number, field: keyof TierFormData, value: string) => {
     const newTiers = [...tiers];
-    newTiers[index][field] = value;
+    newTiers[index][field] = value as any;
     setTiers(newTiers);
   };
 
@@ -104,7 +118,6 @@ const EditEventPage = () => {
 
   const removeImage = () => {
       setImageFile(null);
-      // Don't revoke if it's the original URL from server, but simplistic check is fine
       if (imagePreview && !imagePreview.includes('http')) URL.revokeObjectURL(imagePreview);
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -119,19 +132,14 @@ const EditEventPage = () => {
       formData.append('location_name', location);
       formData.append('start_datetime', new Date(startDate).toISOString());
       formData.append('end_datetime', new Date(endDate).toISOString());
+      
+      formData.append('store', selectedStore);
 
       if (imageFile) {
         formData.append('poster_image', imageFile);
       }
 
-      // Note: Editing nested tiers via PUT is tricky with DRF standard serializers.
-      // For MVP stability, we often just send the updated JSON list.
-      // Backend must be smart enough to update existing IDs and create new ones.
-      // Standard DRF might delete/recreate or fail on nested updates without specific logic.
-      // For now, let's send it and assume the backend `to_internal_value` parses it.
-      
       const formattedTiers = tiers.map(t => ({
-          // Include ID if it exists so backend knows to update, not create
           ...(t.id ? { id: t.id } : {}), 
           name: t.name,
           description: t.description,
@@ -140,12 +148,11 @@ const EditEventPage = () => {
       }));
       formData.append('tiers', JSON.stringify(formattedTiers));
       
-      // Use PATCH to update only changed fields (safest) or PUT for full replacement
       await api.patch(`/api/organizer/events/${id}/edit/`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      navigate(`/organizer/events/${id}`); // Go back to dashboard
+      navigate(`/organizer/events/${id}`);
     } catch (err) {
       console.error(err);
       alert('Failed to save changes.');
@@ -169,60 +176,52 @@ const EditEventPage = () => {
       </div>
 
       <div className="bg-surface border border-white/10 p-8 rounded-3xl space-y-6">
-          {/* Same Form Fields as Create Page */}
+          {/* ... Basic Details ... */}
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Event Title</label>
-              <input 
-                type="text" 
-                className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-              />
+              <input type="text" className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none" value={title} onChange={e => setTitle(e.target.value)} />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Description</label>
-              <textarea 
-                rows={4}
-                className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-              />
+              <textarea rows={4} className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none" value={description} onChange={e => setDescription(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Start Date</label>
-                    <input 
-                        type="datetime-local" 
-                        className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none"
-                        value={startDate}
-                        onChange={e => setStartDate(e.target.value)}
-                    />
+                    <input type="datetime-local" className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none" value={startDate} onChange={e => setStartDate(e.target.value)} />
                 </div>
                 <div>
                     <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">End Date</label>
-                    <input 
-                        type="datetime-local" 
-                        className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none"
-                        value={endDate}
-                        onChange={e => setEndDate(e.target.value)}
-                    />
+                    <input type="datetime-local" className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none" value={endDate} onChange={e => setEndDate(e.target.value)} />
                 </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Location</label>
-              <input 
-                  type="text" 
-                  className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none"
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
-              />
+              <input type="text" className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none" value={location} onChange={e => setLocation(e.target.value)} />
             </div>
 
-            {/* Image Upload */}
+            {myStores.length > 0 && (
+                <div className="p-4 border border-white/5 rounded-xl bg-white/5">
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center">
+                        <Store className="w-4 h-4 mr-2" /> Link to Storefront (Optional)
+                    </label>
+                    <select 
+                        value={selectedStore}
+                        onChange={(e) => setSelectedStore(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none appearance-none"
+                    >
+                        <option value="">No Store (Unlinked)</option>
+                        {myStores.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
             <div>
                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Event Poster</label>
                <input type="file" ref={fileInputRef} onChange={handleImageSelect} className="hidden" accept="image/*" />
@@ -244,18 +243,121 @@ const EditEventPage = () => {
             </div>
           </div>
 
+          {/* --- TICKET TIERS SECTION --- */}
+          <div className="pt-6 border-t border-white/10 space-y-6">
+              <h2 className="text-xl font-bold text-white flex items-center">
+                <Ticket className="w-5 h-5 mr-2 text-secondary" />
+                Ticket Types
+              </h2>
+              
+              <div className="space-y-4">
+                {tiers.map((tier, index) => {
+                    const isLocked = tier.quantity_sold !== undefined && tier.quantity_sold > 0;
+                    
+                    return (
+                        <div 
+                            key={index} 
+                            className={`p-6 rounded-2xl border border-white/5 relative group transition-all ${isLocked ? 'bg-white/5 border-white/5 opacity-80' : 'bg-black/20'}`}
+                        >
+                            {/* Delete Button / Locked Icon */}
+                            <div className="absolute top-4 right-4">
+                                {isLocked ? (
+                                    <div className="group/tooltip relative">
+                                        <Lock className="w-5 h-5 text-zinc-500 cursor-not-allowed" />
+                                        <div className="absolute right-0 top-full mt-2 w-48 p-2 bg-black border border-white/10 rounded-lg text-[10px] text-zinc-400 hidden group-hover/tooltip:block z-10">
+                                            Cannot delete: {tier.quantity_sold} tickets sold.
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={() => handleRemoveTier(index)}
+                                        className="text-zinc-600 hover:text-red-500 transition-colors"
+                                        title="Remove this ticket"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <div className="grid md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="block text-xs text-zinc-500 mb-1">Ticket Name</label>
+                                    <input 
+                                        type="text" 
+                                        disabled={isLocked}
+                                        className={`w-full bg-transparent border-b border-white/10 py-2 text-white focus:border-primary outline-none font-bold ${isLocked ? 'cursor-not-allowed text-zinc-400' : ''}`}
+                                        placeholder="e.g. VIP Pass"
+                                        value={tier.name}
+                                        onChange={e => handleTierChange(index, 'name', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-zinc-500 mb-1">Description</label>
+                                    <input 
+                                        type="text" 
+                                        disabled={isLocked}
+                                        className={`w-full bg-transparent border-b border-white/10 py-2 text-white focus:border-primary outline-none ${isLocked ? 'cursor-not-allowed text-zinc-400' : ''}`}
+                                        placeholder="Includes backstage access..."
+                                        value={tier.description}
+                                        onChange={e => handleTierChange(index, 'description', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs text-zinc-500 mb-1">Price (KES)</label>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-0 top-2 w-4 h-4 text-zinc-500" />
+                                        <input 
+                                            type="number" 
+                                            disabled={isLocked}
+                                            className={`w-full bg-transparent border-b border-white/10 py-2 pl-6 text-white focus:border-primary outline-none font-mono ${isLocked ? 'cursor-not-allowed text-zinc-400' : ''}`}
+                                            placeholder="0"
+                                            value={tier.price}
+                                            onChange={e => handleTierChange(index, 'price', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-zinc-500 mb-1">Quantity</label>
+                                    <input 
+                                        type="number" 
+                                        // Allow changing quantity even if locked (usually to increase stock)
+                                        className="w-full bg-transparent border-b border-white/10 py-2 text-white focus:border-primary outline-none font-mono"
+                                        placeholder="100"
+                                        value={tier.quantity_allocated}
+                                        onChange={e => handleTierChange(index, 'quantity_allocated', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {isLocked && (
+                                <div className="mt-2 text-[10px] text-primary flex items-center">
+                                    <CheckCircle className="w-3 h-3 mr-1" /> 
+                                    {tier.quantity_sold} sold - Editing restricted
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+
+                <button 
+                    onClick={handleAddTier}
+                    className="w-full py-4 border-2 border-dashed border-white/10 rounded-2xl text-zinc-400 hover:text-white hover:border-white/30 transition-all flex items-center justify-center font-medium"
+                >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Add Another Ticket Type
+                </button>
+              </div>
+          </div>
+
           <div className="flex justify-end pt-4">
             <button 
               onClick={handleSubmit}
               disabled={saving}
               className="px-8 py-3 bg-success hover:bg-green-600 text-white font-bold rounded-xl transition-colors shadow-neon flex items-center"
             >
-              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                  <>
-                    <Save className="w-5 h-5 mr-2" />
-                    Save Changes
-                  </>
-              )}
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> Save Changes</>}
             </button>
           </div>
       </div>

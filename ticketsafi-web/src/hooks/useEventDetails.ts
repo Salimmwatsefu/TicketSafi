@@ -18,6 +18,13 @@ interface BackendEventDetail {
         price: number;
         available_qty: number;
     }[];
+
+    store: {
+        id: string;
+        name: string;
+        slug: string;
+        logo_image: string | null;
+    } | null;
 }
 
 export const useEventDetails = (eventId: string | undefined) => {
@@ -55,7 +62,17 @@ export const useEventDetails = (eventId: string | undefined) => {
                         description: t.description,
                         price: t.price.toLocaleString(),
                         available_qty: t.available_qty
-                    }))
+                    })),
+
+                    store: data.store ? {
+    id: data.store.id,
+    name: data.store.name,
+    slug: data.store.slug,
+    logo_image: data.store.logo_image
+        ? (data.store.logo_image.startsWith('http') ? data.store.logo_image : `http://localhost:8000${data.store.logo_image}`)
+        : null
+} : null,
+
                 };
 
                 setEvent(mappedEvent);

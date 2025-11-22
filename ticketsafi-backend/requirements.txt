@@ -25,3 +25,7 @@ redis==5.0.1
 #M-Pesa SDK (We will wrap this later, but good to have)
 
 django-daraja
+
+gunicorn==21.2.0
+psycopg2-binary==2.9.9
+whitenoise==6.6.0
