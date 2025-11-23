@@ -1,4 +1,4 @@
-vservices:
+services:
   # 1. Traffic Cop (SSL & Routing)
   nginx-proxy:
     image: 'jc21/nginx-proxy-manager:latest'
