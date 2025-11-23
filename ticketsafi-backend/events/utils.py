@@ -194,13 +194,13 @@ def send_ticket_email(ticket):
     You can save this image to your phone and scan it at the gate.
     
     Enjoy the event!
-    TicketSafi Team
+    YadiTickets Team
     """
 
     email = EmailMessage(
         subject=subject,
         body=body,
-        from_email='TicketSafi <tickets@ticketsafi.co.ke>',
+        from_email='YadiTickets <sjmwatsefu@gmail.com>',
         to=[ticket.attendee_email or ticket.owner.email],
     )
     

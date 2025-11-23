@@ -4,6 +4,7 @@ import { Ticket, Mail, Lock, Loader2, User, Briefcase } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
+import {GoogleIcon} from '../../components/ui/icons/GoogleIcon'
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -179,6 +180,7 @@ const LoginPage = () => {
              onClick={() => handleGoogleLogin()}
              className="w-full py-3.5 rounded-xl bg-white text-zinc-900 font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center"
            >
+            <GoogleIcon className="w-5 h-5" />
               <span className="ml-2">Continue with Google</span>
            </button>
 

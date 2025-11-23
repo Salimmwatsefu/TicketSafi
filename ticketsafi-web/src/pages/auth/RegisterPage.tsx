@@ -3,6 +3,7 @@ import { useNavigate, Link, useParams } from 'react-router-dom';
 import { Ticket, Mail, Lock, User, Loader2, Briefcase } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
+import {GoogleIcon} from '../../components/ui/icons/GoogleIcon'
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -198,6 +199,8 @@ const RegisterPage = () => {
              onClick={() => handleGoogleLogin()}
              className="w-full py-3.5 rounded-xl bg-white text-zinc-900 font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center"
            >
+
+            <GoogleIcon className="w-5 h-5" />
               <span className="ml-2">Continue with Google</span>
            </button>
 
