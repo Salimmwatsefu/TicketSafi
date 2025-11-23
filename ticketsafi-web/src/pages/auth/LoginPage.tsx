@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { Ticket, Mail, Lock, Loader2, User, Briefcase } from 'lucide-react';
+import { Ticket, Lock, Loader2, User, Briefcase } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
-import {GoogleIcon} from '../../components/ui/icons/GoogleIcon'
+import { GoogleIcon } from '../../components/ui/icons/GoogleIcon';
+
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -13,8 +14,6 @@ const LoginPage = () => {
   
   const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [loading, setLoading] = useState(false);
-  
-  // CHANGE: Allow JSX in error
   const [error, setError] = useState<React.ReactNode>('');
 
   const isOrganizer = type === 'organizer';
@@ -37,23 +36,52 @@ const LoginPage = () => {
       redirectPath: "/"
   };
 
+  // --- DEFINE THIS FUNCTION HERE ---
+  const handleRoleBasedRedirect = async () => {
+    try {
+        // Fetch the FRESH user details from the backend
+        const userRes = await api.get('/api/auth/user/');
+        const role = userRes.data.role;
+
+        if (role === 'SCANNER') {
+            navigate('/scanner', { replace: true });
+        } else if (role === 'ORGANIZER') {
+             navigate('/organizer', { replace: true });
+        } else {
+             navigate('/', { replace: true }); 
+        }
+    } catch (err) {
+        console.error("Failed to fetch role after login", err);
+        // Fallback to default path if role fetch fails
+        navigate(config.redirectPath);
+    }
+  };
+
   // --- Google Handler ---
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
         setLoading(true);
         try {
-            await loginWithGoogle(tokenResponse.access_token);
-            navigate(config.redirectPath);
+            // 1. Determine role based on the current URL (organizer or attendee)
+            const roleToAssign = isOrganizer ? 'ORGANIZER' : 'ATTENDEE';
+            
+            // 2. Login with that role preference
+            await loginWithGoogle(tokenResponse.access_token, roleToAssign);
+            
+            // 3. Redirect to the correct dashboard
+            await handleRoleBasedRedirect();
         } catch (err) {
             setError('Google Sign-In failed. Please try again.');
             setLoading(false);
         }
     },
-    onError: () => setError('Google Sign-In failed.'),
+    onError: () => {
+        setError('Google Sign-In failed.');
+        setLoading(false);
+    }
   });
 
-
-
+  // --- Standard Login Handler ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -61,10 +89,7 @@ const LoginPage = () => {
 
     try {
         const isEmail = formData.identifier.includes('@');
-        
-        const loginPayload: any = {
-            password: formData.password
-        };
+        const loginPayload: any = { password: formData.password };
 
         if (isEmail) {
             loginPayload.email = formData.identifier;
@@ -74,23 +99,11 @@ const LoginPage = () => {
 
         await login(loginPayload);
         
-        // --- STRICT REDIRECT LOGIC ---
-        // Fetch user details to determine role and redirect accordingly
-        const userRes = await api.get('/api/auth/user/');
-        const role = userRes.data.role;
-
-        if (role === 'SCANNER') {
-            navigate('/scanner', { replace: true }); // Strict redirect for scanners
-        } else if (role === 'ORGANIZER') {
-             navigate('/organizer'); // Redirect organizers to dashboard
-        } else {
-             navigate(config.redirectPath); // Default redirect for attendees
-        }
-        // -----------------------------
+        // Use the same redirect logic here!
+        await handleRoleBasedRedirect();
 
     } catch (err: any) {
         console.error(err);
-        // If authentication fails, it might be a shadow user with no password
         if (err.response?.data?.non_field_errors) {
             setError(
                 <span>
@@ -110,7 +123,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-       
+       {/* ... Background blobs ... */}
        <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] blur-[120px] rounded-full opacity-40 ${isOrganizer ? 'bg-secondary/20' : 'bg-primary/20'}`} />
        <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] blur-[120px] rounded-full opacity-40 ${isOrganizer ? 'bg-blue-500/20' : 'bg-secondary/20'}`} />
 
@@ -131,6 +144,7 @@ const LoginPage = () => {
            )}
 
            <form onSubmit={handleSubmit} className="space-y-5">
+               {/* ... Input fields remain the same ... */}
                <div>
                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Email or Username</label>
                    <div className="relative">
@@ -178,10 +192,10 @@ const LoginPage = () => {
 
            <button 
              onClick={() => handleGoogleLogin()}
-             className="w-full py-3.5 rounded-xl bg-white text-zinc-900 font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center"
+             className="w-full py-3.5 rounded-xl bg-white text-zinc-900 font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center gap-3"
            >
             <GoogleIcon className="w-5 h-5" />
-              <span className="ml-2">Continue with Google</span>
+             <span>Continue with Google</span>
            </button>
 
            <div className="mt-8 text-center">

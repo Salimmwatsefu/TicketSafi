@@ -3,7 +3,8 @@ import { useNavigate, Link, useParams } from 'react-router-dom';
 import { Ticket, Mail, Lock, User, Loader2, Briefcase } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
-import {GoogleIcon} from '../../components/ui/icons/GoogleIcon'
+import api from '../../api/axios'; // Needed for role check
+import { GoogleIcon } from '../../components/ui/icons/GoogleIcon';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -14,16 +15,13 @@ const RegisterPage = () => {
   
   const [formData, setFormData] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
-  
-  // CHANGE: Allow ReactNode so we can put Links in the error
   const [error, setError] = useState<React.ReactNode>('');
 
-  // --- Configuration based on User Type ---
   const config = isOrganizer ? {
       title: "Become an Organizer",
       subtitle: "Start selling tickets in minutes",
       icon: Briefcase,
-      themeColor: "text-secondary", // Violet
+      themeColor: "text-secondary",
       gradient: "bg-gradient-to-r from-violet-600 to-indigo-600",
       loginLink: "/login/organizer",
       redirectPath: "/organizer",
@@ -32,19 +30,42 @@ const RegisterPage = () => {
       title: "Join TicketSafi",
       subtitle: "Create an account to get started",
       icon: Ticket,
-      themeColor: "text-primary", // Pink
+      themeColor: "text-primary",
       gradient: "bg-neon-gradient",
       loginLink: "/login/attendee",
       redirectPath: "/",
       role: "ATTENDEE"
   };
 
+  // --- SHARED REDIRECT LOGIC (Same as Login) ---
+  const handleRoleBasedRedirect = async () => {
+    try {
+        const userRes = await api.get('/api/auth/user/');
+        const role = userRes.data.role;
+
+        if (role === 'SCANNER') {
+            navigate('/scanner', { replace: true });
+        } else if (role === 'ORGANIZER') {
+             navigate('/organizer', { replace: true });
+        } else {
+             navigate('/', { replace: true }); 
+        }
+    } catch (err) {
+        console.error("Failed to fetch role after registration", err);
+        navigate(config.redirectPath);
+    }
+  };
+
+  // --- GOOGLE REGISTRATION ---
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
         setLoading(true);
         try {
-            await loginWithGoogle(tokenResponse.access_token);
-            navigate(config.redirectPath);
+            // 1. Pass the role from config so backend Adapter sees it
+            await loginWithGoogle(tokenResponse.access_token, config.role);
+            
+            // 2. Redirect based on the role we just assigned
+            await handleRoleBasedRedirect();
         } catch (err) {
             setError('Google Sign-Up failed. Please try again.');
             setLoading(false);
@@ -65,22 +86,22 @@ const RegisterPage = () => {
     setError('');
 
     try {
+        // Standard Email Registration
         await register({
             username: formData.username,
             email: formData.email,
             password: formData.password,
             password1: formData.password,
             password2: formData.confirmPassword,
-            role: config.role 
+            role: config.role // This works fine because your serializer handles it
         });
         
-        navigate(config.redirectPath);
+        // Use smart redirect here too
+        await handleRoleBasedRedirect();
+
     } catch (err: any) {
         console.error(err);
-        
-        // --- SMART ERROR HANDLING ---
         if (err.response?.data?.email) {
-             // If email exists, it might be a Shadow User. Guide them!
              setError(
                <span>
                  An account with this email already exists. <br/>
@@ -103,7 +124,7 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-       
+       {/* Backgrounds */}
        <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] blur-[120px] rounded-full opacity-40 ${isOrganizer ? 'bg-secondary/20' : 'bg-primary/20'}`} />
        <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] blur-[120px] rounded-full opacity-40 ${isOrganizer ? 'bg-blue-500/20' : 'bg-secondary/20'}`} />
 
@@ -124,6 +145,7 @@ const RegisterPage = () => {
            )}
 
            <form onSubmit={handleSubmit} className="space-y-4">
+               {/* ... Inputs same as before ... */}
                <div>
                    <div className="relative">
                        <User className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500" />
@@ -197,11 +219,10 @@ const RegisterPage = () => {
 
            <button 
              onClick={() => handleGoogleLogin()}
-             className="w-full py-3.5 rounded-xl bg-white text-zinc-900 font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center"
+             className="w-full py-3.5 rounded-xl bg-white text-zinc-900 font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center gap-3"
            >
-
             <GoogleIcon className="w-5 h-5" />
-              <span className="ml-2">Continue with Google</span>
+             <span>Continue with Google</span>
            </button>
 
            <div className="mt-8 text-center">

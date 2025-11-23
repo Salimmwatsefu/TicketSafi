@@ -16,7 +16,8 @@ interface AuthContextType {
   loading: boolean;
   login: (data: any) => Promise<void>;
   register: (data: any) => Promise<void>;
-  loginWithGoogle: (token: string) => Promise<void>; // NEW
+  // FIX: Add the optional role argument here so TypeScript allows it
+  loginWithGoogle: (token: string, role?: string) => Promise<void>; 
   logout: () => Promise<void>;
   checkAuthStatus: () => Promise<void>;
 }
@@ -27,7 +28,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Check if user is already logged in (Session persistence)
   const checkAuthStatus = async () => {
     try {
       const response = await api.get('/api/auth/user/');
@@ -48,28 +48,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuthStatus();
   }, []);
 
-  // 2. Login Action (Email/Pass)
   const login = async (credentials: any) => {
     await api.post('/api/auth/login/', credentials);
     await checkAuthStatus();
   };
 
-  // 3. Register Action
   const register = async (data: any) => {
     await api.post('/api/auth/registration/', data);
     await checkAuthStatus();
   };
 
-  // 4. Google Login Action (NEW)
-  const loginWithGoogle = async (token: string) => {
-    // Send the Google Access Token to Django
+  // 4. Google Login Action
+  // The logic here is perfect. It sends the role to your custom Adapter.
+  const loginWithGoogle = async (token: string, role = 'ATTENDEE') => {
     await api.post('/api/auth/google/', {
         access_token: token,
+        role: role // <--- Backend reads this!
     });
     await checkAuthStatus();
   };
 
-  // 5. Logout Action
   const logout = async () => {
     try {
       await api.post('/api/auth/logout/');
