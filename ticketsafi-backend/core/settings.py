@@ -13,7 +13,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-fallback-key')
 # Cast to boolean so "False" string becomes Python False
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 
 # --- INSTALLED APPS ---
@@ -133,6 +133,13 @@ CSRF_TRUSTED_ORIGINS = [
    
 ]
 
+# 1. Trust the "X-Forwarded-Proto" header coming from Nginx Proxy Manager
+# This tells Django: "Even though Nginx is talking to me via HTTP, the user is on HTTPS"
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# 2. Trust the Host header provided by Nginx
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 CORS_ALLOW_METHODS = [
     'DELETE',
