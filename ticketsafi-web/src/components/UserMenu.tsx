@@ -76,7 +76,7 @@ const UserMenu = () => {
             {(isOrganizer || user.is_staff) && (
                 <button 
                   onClick={() => { navigate('/organizer'); setIsOpen(false); }}
-                  className="..."
+                  className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   <LayoutDashboard className="w-4 h-4 text-secondary" />
                   <span>Organizer Portal</span>
