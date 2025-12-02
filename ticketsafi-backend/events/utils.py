@@ -20,7 +20,7 @@ def generate_ticket_image(ticket):
     """
     # 1. Setup Canvas
     width = 600
-    height = 1200
+    height = 1800
     
     background_color = (9, 9, 11)
     card_color = (24, 24, 27)

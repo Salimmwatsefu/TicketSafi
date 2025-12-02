@@ -113,9 +113,7 @@ const TicketPage = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/50 to-transparent" />
               
               <div className="absolute bottom-4 left-6 right-6">
-                  <span className="inline-block px-2 py-1 rounded bg-white/10 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider mb-2 border border-white/20">
-                      {ticket.organizer_name} Presents
-                  </span>
+                  
                   <h1 className="text-2xl font-heading font-bold leading-tight text-white mb-1 drop-shadow-md">
                       {ticket.event_title}
                   </h1>

@@ -155,11 +155,16 @@ class InitiatePaymentView(views.APIView):
         # --- 1. Identify Owner (or create Guest User) ---
         if request.user.is_authenticated:
             owner = request.user
+            # FIX: If no specific name provided, use the logged-in user's name
+            if not guest_name:
+                if owner.first_name:
+                    guest_name = f"{owner.first_name} {owner.last_name or ''}".strip()
+                else:
+                    guest_name = owner.username
         else:
             if not guest_email or not guest_name:
                 return Response({"error": "Guest details required."}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Use '254700000000' as a safe default if no phone number provided for guest
             owner_phone = phone_number if phone_number else '254700000000' 
 
             owner, created = User.objects.get_or_create(
@@ -195,11 +200,17 @@ class InitiatePaymentView(views.APIView):
             for i in range(quantity):
                 # The first ticket will be the one used for the QR image/email.
                 # All tickets in the group point to the same group_qr_hash.
+
+                final_name = guest_name
+                if quantity > 1:
+                    final_name = f"{guest_name} ({i+1}/{quantity})"
+
+
                 ticket = Ticket.objects.create(
                     event=tier.event,
                     tier=tier,
                     owner=owner,
-                    attendee_name=f"{guest_name} ({i+1}/{quantity})" if quantity > 1 else guest_name,
+                    attendee_name=final_name,
                     attendee_email=guest_email or owner.email,
                     qr_code_hash=group_qr_hash # Set the shared hash
                 )
