@@ -12,6 +12,7 @@ const EventDetailsPage = () => {
   
   // State for Selection & Modal
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  // FIX 1: Quantity is now state and defaults to 1
   const [quantity, setQuantity] = useState(1); 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
@@ -20,13 +21,15 @@ const EventDetailsPage = () => {
 
   const handleSelectTier = (tierId: string) => {
       setSelectedTier(tierId);
-      setQuantity(1); // Reset quantity on new tier selection
+      // FIX 2: Restore reset to 1 when tier is selected
+      setQuantity(1); 
   }
   
   const singlePriceValue = selectedTierData 
       ? parseFloat(selectedTierData.price.replace('KES ', '').replace(/,/g, ''))
       : 0;
 
+  // Total price now correctly uses the quantity state
   const totalPrice = `KES ${(singlePriceValue * quantity).toLocaleString()}`;
 
 
@@ -54,7 +57,7 @@ const EventDetailsPage = () => {
           tierId={selectedTierData.id}
           tierName={selectedTierData.name}
           price={selectedTierData.price} // Single ticket price
-          quantity={quantity} // NEW PROP
+          quantity={quantity} // Passed as selected quantity
         />
       )}
       
@@ -66,21 +69,21 @@ const EventDetailsPage = () => {
 
       {/* --- Navigation Bar --- */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5 px-6 py-4">
-         <div className="max-w-7xl mx-auto flex justify-between items-center">
-             <button 
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <button 
                 onClick={() => navigate('/')} 
                 className="flex items-center text-zinc-400 hover:text-white transition-colors"
-             >
-                 <ArrowLeft className="w-5 h-5 mr-2" />
-                 <span className="hidden md:inline font-medium">Back to Events</span>
-             </button>
-             <div className="font-heading font-bold text-lg opacity-0 md:opacity-100 transition-opacity">
-                {event.title}
-             </div>
-             <button className="p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
-                 <Share2 className="w-5 h-5" />
-             </button>
-         </div>
+              >
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  <span className="hidden md:inline font-medium">Back to Events</span>
+              </button>
+              <div className="font-heading font-bold text-lg opacity-0 md:opacity-100 transition-opacity">
+                 {event.title}
+              </div>
+              <button className="p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
+                  <Share2 className="w-5 h-5" />
+              </button>
+          </div>
       </div>
 
       {/* --- Main Content Grid --- */}
@@ -212,17 +215,19 @@ const EventDetailsPage = () => {
                                   );
                               })}
                            </div>
-                           
-                           {/* --- QUANTITY SELECTOR (NEW) --- */}
+
+                           {/* --- QUANTITY SELECTOR (UNLOCKED AND CAPPED) --- */}
                            {selectedTierData && (
                                 <div className="mt-6 pt-6 border-t border-white/10 space-y-4">
-                                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Quantity (1 - 10)</label>
+                                    {/* FIX 1: Update Label */}
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Quantity</label>
                                     <input
                                         type="number"
                                         min="1"
-                                        max="10" 
-                                        // Fix 1: Use value={0 ? '' : quantity} to allow clearing, and let 1 be the final clipped value
+                                        max="3" // FIX 3: Enforce max 3
+                                        // FIX 4: Use value={0 ? '' : quantity} to allow clearing, and let 1 be the final clipped value
                                         value={quantity === 0 ? '' : quantity} 
+                                        disabled={false} // Unlocked
                                         onChange={(e) => {
                                             const rawValue = e.target.value;
                                             if (rawValue === '') {
@@ -230,8 +235,8 @@ const EventDetailsPage = () => {
                                             } else {
                                                 const val = parseInt(rawValue);
                                                 if (!isNaN(val)) {
-                                                    // Ensure the value is clipped between 1 and 10 on valid input
-                                                    setQuantity(Math.min(10, Math.max(1, val))); 
+                                                    // FIX 5: Ensure the value is clipped between 1 and 3
+                                                    setQuantity(Math.min(3, Math.max(1, val))); 
                                                 }
                                             }
                                         }}
@@ -239,8 +244,7 @@ const EventDetailsPage = () => {
                                     />
                                 </div>
                            )}
-
-
+                           
                            {/* Desktop Buy Button */}
                            <div className="mt-6 pt-6 border-t border-white/10 hidden md:block">
                                <div className="flex justify-between items-center mb-4">

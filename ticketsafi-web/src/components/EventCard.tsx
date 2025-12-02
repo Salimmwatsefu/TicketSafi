@@ -18,7 +18,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
         <img 
           src={event.imageUrl} 
           alt={event.title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 md:group-hover:scale-110"
         />
         
         {/* The "Cinematic" Fade at the bottom */}
