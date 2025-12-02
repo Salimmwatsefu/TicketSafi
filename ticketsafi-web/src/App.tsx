@@ -22,6 +22,7 @@ import StorePage from './pages/StorePage';
 import EditStorePage from './pages/organizer/EditStorePage';
 import PayoutsPage from './pages/organizer/PayoutsPage';
 import { CookieBanner } from './components/CookieBanner';
+import TermsPage from './pages/TermsPage';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -55,6 +56,8 @@ function App() {
             {/* --- AUTH ROUTES --- */}
             <Route path="/auth/select" element={<AuthSelectionPage />} />
             <Route path="/login" element={<AuthSelectionPage />} /> 
+
+            <Route path="/terms" element={<MainLayout><TermsPage /></MainLayout>} />
             
             {/* NEW: Explicit Gate Route (Avoids conflict with Login/Register paths) */}
             <Route path="/organizer/gate/:action" element={<OrganizerGatePage />} />

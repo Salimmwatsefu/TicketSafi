@@ -14,7 +14,7 @@ const StoresListPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20 pt-10 px-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-heading font-bold text-white mb-8">Discover Organizers</h1>
+        <h1 className="text-4xl font-heading font-bold text-white mb-8">Discover Creators</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {stores.map(store => (

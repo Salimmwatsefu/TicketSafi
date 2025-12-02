@@ -194,11 +194,15 @@ const RegisterPage = () => {
                </button>
 
                <p className="text-[10px] text-zinc-500 text-center mt-4 px-4 leading-relaxed">
-                  By creating an account, you agree to our{' '}
-                  <a href="#" className="hover:text-zinc-300 underline transition-colors">Terms of Service</a>
-                  {' '}and{' '}
-                  <a href="#" className="hover:text-zinc-300 underline transition-colors">Privacy Policy</a>.
-               </p>
+  By continuing, you agree to our{' '}
+  <Link to="/terms" className="hover:text-zinc-300 underline transition-colors">
+    Terms of Service
+  </Link>
+  {' '}and{' '}
+  <Link to="/terms" className="hover:text-zinc-300 underline transition-colors">
+    Privacy Policy
+  </Link>.
+</p>
            </form>
 
            <div className="mt-8 text-center">

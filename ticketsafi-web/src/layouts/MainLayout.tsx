@@ -140,9 +140,23 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </div>
           <p className="hidden md:block">&copy; 2025 Yadi Kenya.</p>
           <div className="flex space-x-8">
-            <span className="hover:text-primary cursor-pointer transition-colors">Privacy</span>
-            <span className="hover:text-primary cursor-pointer transition-colors">Terms</span>
-            <span className="hover:text-primary cursor-pointer transition-colors">Organizers</span>
+            
+            {/* UPDATE THESE SPANS TO BUTTONS OR LINKS */}
+            <button 
+                onClick={() => navigate('/terms')}
+                className="hover:text-primary cursor-pointer transition-colors text-zinc-400"
+            >
+                Privacy
+            </button>
+            
+            <button 
+                onClick={() => navigate('/terms')}
+                className="hover:text-primary cursor-pointer transition-colors text-zinc-400"
+            >
+                Terms
+            </button>
+
+            <span className="hover:text-primary cursor-pointer transition-colors text-zinc-400">Organizers</span>
           </div>
         </div>
       </footer>
