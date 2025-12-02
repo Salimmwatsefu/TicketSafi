@@ -64,7 +64,7 @@ const RegisterPage = () => {
     onSuccess: async (tokenResponse) => {
         setLoading(true);
         try {
-            await loginWithGoogle(tokenResponse.access_token, config.role);
+            await loginWithGoogle(tokenResponse.access_token, config.role, invitationCode || undefined);
             await handleRoleBasedRedirect();
         } catch (err) {
             setError('Google Sign-Up failed. Please try again.');
@@ -192,6 +192,13 @@ const RegisterPage = () => {
                <button type="submit" disabled={loading} className={`w-full py-4 rounded-xl text-white font-bold shadow-lg flex justify-center items-center ${config.gradient}`}>
                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
                </button>
+
+               <p className="text-[10px] text-zinc-500 text-center mt-4 px-4 leading-relaxed">
+                  By creating an account, you agree to our{' '}
+                  <a href="#" className="hover:text-zinc-300 underline transition-colors">Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="#" className="hover:text-zinc-300 underline transition-colors">Privacy Policy</a>.
+               </p>
            </form>
 
            <div className="mt-8 text-center">

@@ -92,7 +92,7 @@ const TicketPage = () => {
     <div className="min-h-screen bg-background text-white flex flex-col items-center pt-6 pb-20 px-4 overflow-y-auto">
       
       <div className="w-full max-w-md flex justify-between items-center mb-8">
-         <button onClick={() => navigate('/')} className="p-2 bg-surface border border-white/10 rounded-full text-zinc-400 hover:text-white transition-colors">
+         <button onClick={() => navigate('/my-tickets')} className="p-2 bg-surface border border-white/10 rounded-full text-zinc-400 hover:text-white transition-colors">
              <ArrowLeft className="w-5 h-5" />
          </button>
          <h2 className="font-heading font-bold text-lg tracking-wide">DIGITAL PASS</h2>

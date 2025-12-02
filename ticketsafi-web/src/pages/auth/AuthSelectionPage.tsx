@@ -16,7 +16,7 @@ const AuthSelectionPage = () => {
 
       <div className="w-full max-w-4xl">
         <div className="text-center mb-12">
-           <h1 className="text-3xl md:text-5xl font-heading font-bold text-white mb-4">Welcome to TicketSafi</h1>
+           <h1 className="text-3xl md:text-5xl font-heading font-bold text-white mb-4">Welcome to Yadi Tickets</h1>
            <p className="text-zinc-400 text-lg">How would you like to continue?</p>
         </div>
 

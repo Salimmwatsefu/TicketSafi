@@ -7,72 +7,63 @@ import json
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     def pre_social_login(self, request, sociallogin):
-        """
-        Invoked just before login/registration. Used here to enforce
-        the Organizer Invitation Code check for new users.
-        """
-        # 1. Check if a user with this email already exists (for linking/login)
+        # 1. Check if user exists (Login logic)
         email = sociallogin.account.extra_data.get('email')
-        if not email:
-            return
-
-        try:
-            user = User.objects.get(email=email)
-            
-            # If user exists (either linked or found by email), proceed to connect/login
-            if not sociallogin.is_existing:
-                 sociallogin.connect(request, user)
-
-            # SILENT MERGE: Upgrade Guest Accounts
-            if getattr(user, 'is_guest', False) or not user.is_active:
-                user.is_guest = False
-                user.is_active = True
-                user.save()
-            
-            # Allow login to proceed normally for existing users
-            return
-
-        except User.DoesNotExist:
-            # --- SECURITY CHECK: Block New Organizer Social Registration ---
-            requested_role = request.GET.get('role')
-
-            if requested_role == User.Role.ORGANIZER:
-                # If a new user is trying to register as an Organizer via social login,
-                # they must be redirected to the standard form where the code is mandatory.
-                
-                if settings.DEBUG:
-                    domain = "http://localhost:5173"
-                else:
-                    domain = "https://tickets.yadi.app"
-                
-                # Redirect to login/organizer with an error flag
-                redirect_url = f"{domain}/login/organizer?social_error=code_required"
-                raise ImmediateHttpResponse(redirect(redirect_url))
-            
-            # If new user requests ATTENDEE, we let the flow proceed to save_user()
-            pass
-
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                if not sociallogin.is_existing:
+                     sociallogin.connect(request, user)
+                # Upgrade Guest Logic
+                if getattr(user, 'is_guest', False):
+                    user.is_guest = False
+                    user.is_active = True
+                    user.save()
+                return
+            except User.DoesNotExist:
+                pass
 
     def save_user(self, request, sociallogin, form=None):
-        """
-        Invoked when a NEW user is being created via social login.
-        This only runs if pre_social_login allowed it (i.e., new ATTENDEE).
-        """
         user = super().save_user(request, sociallogin, form)
         
-        # 1. Prioritized Check: URL Query Parameters
-        requested_role = request.GET.get('role')
+        # --- 1. EXTRACT DATA (Prioritize URL Query Params) ---
+        # Since we moved the code to the URL, request.GET is the most reliable place.
+        data = request.GET.dict() # Get ?role=...&invitation_code=...
+        
+        # Fallback: Merge with JSON body if available (just in case)
+        try:
+            if hasattr(request, 'data') and isinstance(request.data, dict):
+                data.update(request.data)
+        except Exception:
+            pass
 
-        # 2. Assign Role: Force to ATTENDEE if ORGANIZER was requested without a code
-        if requested_role == User.Role.ORGANIZER:
-            # This is a fallback check; pre_social_login should have prevented this path.
-            user.role = User.Role.ATTENDEE
+        requested_role = data.get('role')
+        # Clean the code (remove spaces)
+        provided_code = data.get('invitation_code', '').strip() 
+        
+        print(f"DEBUG ADAPTER: Role={requested_role}, Code='{provided_code}'")
+
+        # --- 2. VALIDATE & ASSIGN ROLE ---
+        REUSABLE_CODES = ['YADI-ORG-1', 'YADI-ORG-2']
+
+        if requested_role == 'ORGANIZER':
+            # Check Hardcoded List
+            if provided_code.upper() in REUSABLE_CODES:
+                user.role = User.Role.ORGANIZER
+            
+            # Check Database List
+            elif provided_code and OrganizerInvitationCode.objects.filter(code=provided_code, is_active=True).exists():
+                user.role = User.Role.ORGANIZER
+            
+            else:
+                # Security Fallback
+                print(f"WARNING: Invalid/Missing Code '{provided_code}' for Organizer request. Defaulting to Attendee.")
+                user.role = User.Role.ATTENDEE
         else:
             user.role = User.Role.ATTENDEE
         
-        # Ensure new Google users are not flagged as guests and are active
         user.is_guest = False
         user.is_active = True
-        
         user.save()
+        
         return user

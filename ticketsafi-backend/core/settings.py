@@ -80,11 +80,15 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 # --- DATABASE ---
+DB_URL = config('DATABASE_URL', default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'))
+
+# 2. Configure the database
 DATABASES = {
     'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        default=DB_URL,
         conn_max_age=600,
-        ssl_require=True
+        # FIX: Only enable SSL if the URL contains 'postgres'
+        ssl_require=('postgres' in DB_URL)
     )
 }
 
@@ -252,6 +256,9 @@ if USE_SPACES:
     AWS_S3_ENDPOINT_URL = config('AWS_S3_ENDPOINT_URL') # e.g. https://nyc3.digitaloceanspaces.com
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
     AWS_DEFAULT_ACL = 'public-read'
+
+    STATIC_URL = '/static/'
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     
     # CDN Configuration (The "Enable CDN" part)
     AWS_S3_CUSTOM_DOMAIN = config('AWS_S3_CUSTOM_DOMAIN', default=None) 

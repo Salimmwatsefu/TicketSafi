@@ -62,7 +62,7 @@ const LoginPage = () => {
     onSuccess: async (tokenResponse) => {
         setLoading(true);
         try {
-            await loginWithGoogle(tokenResponse.access_token, isOrganizer ? 'ORGANIZER' : 'ATTENDEE');
+            await loginWithGoogle(tokenResponse.access_token, isOrganizer ? 'ORGANIZER' : 'ATTENDEE', invitationCode || undefined);
             await handleRoleBasedRedirect();
         } catch (err) {
             setError('Google Sign-In failed. Please try again.');
@@ -152,6 +152,12 @@ const LoginPage = () => {
                <button type="submit" disabled={loading} className={`w-full py-4 rounded-xl text-white font-bold shadow-lg hover:scale-[1.02] transition-transform flex justify-center items-center ${config.gradient}`}>
                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
                </button>
+               <p className="text-[10px] text-zinc-500 text-center mt-4 px-4 leading-relaxed">
+                  By signing in, you agree to our{' '}
+                  <a href="#" className="hover:text-zinc-300 underline transition-colors">Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="#" className="hover:text-zinc-300 underline transition-colors">Privacy Policy</a>.
+               </p>
            </form>
 
            <div className="mt-8 text-center">

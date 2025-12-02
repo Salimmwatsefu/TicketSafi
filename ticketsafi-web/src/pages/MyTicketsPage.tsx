@@ -7,6 +7,8 @@ const MyTicketsPage = () => {
   const navigate = useNavigate();
   const { tickets, loading, error } = useMyTickets();
 
+  
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -80,7 +82,7 @@ const MyTicketsPage = () => {
                                 <div className="flex items-center space-x-4 text-sm text-zinc-400 mb-4">
                                     <div className="flex items-center">
                                         <Calendar className="w-4 h-4 mr-1.5" />
-                                        {new Date(ticket.event_date).toLocaleDateString()}
+                                        {new Date(ticket.event_start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                     </div>
                                     <div className="flex items-center">
                                         <MapPin className="w-4 h-4 mr-1.5" />

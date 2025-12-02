@@ -5,7 +5,7 @@ export interface TicketSummary {
   id: string;
   qr_code_hash: string;
   event_title: string;
-  event_date: string;
+  event_start_date: string;
   event_location: string;
   event_image: string;
   tier_name: string;

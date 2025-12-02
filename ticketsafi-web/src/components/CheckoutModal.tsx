@@ -139,7 +139,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tierId, 
                 {!user && (
                     <>
                         <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-xs mb-4">
-                            Checking out as Guest. We'll send the ticket for **{quantity}** {quantity > 1 ? 'people' : 'person'} to this email.
+                            Checking out as Guest. We'll send the ticket for {quantity} {quantity > 1 ? 'people' : 'person'} to this email.
                         </div>
                         <div>
                             <label className="block text-sm text-zinc-400 mb-2">Full Name</label>
@@ -187,7 +187,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tierId, 
                     </div>
                 ) : (
                     <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-sm">
-                        This is a **FREE** booking for **{quantity}** {quantity > 1 ? 'tickets' : 'ticket'}.
+                        This is a FREE booking for {quantity} {quantity > 1 ? 'tickets' : 'ticket'}.
                     </div>
                 )}
                 
@@ -226,17 +226,30 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tierId, 
                         <h4 className="text-white font-bold text-xl">{isFree ? 'Booking Confirmed!' : 'Payment Successful!'}</h4>
                         <p className="text-zinc-400 text-sm mt-2">Your ticket{quantity > 1 ? 's' : ''} {quantity > 1 ? 'are' : 'is'} ready and sent to your email.</p>
                     </div>
-                    <button 
-                        onClick={() => {
-                            onClose();
-                            if (ticketId) {
-                                navigate(`/ticket/${ticketId}`);
-                            }
-                        }}
-                        className="w-full py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors mt-4"
-                    >
-                        View Ticket{quantity > 1 ? 's' : ''}
-                    </button>
+                    {user ? (
+                   // OPTION A: Logged In User -> View Ticket
+                   <button 
+                     onClick={() => {
+                         onClose();
+                         if (ticketId) {
+                             navigate(`/ticket/${ticketId}`);
+                         }
+                     }}
+                     className="w-full py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors mt-4"
+                   >
+                     View Ticket{quantity > 1 ? 's' : ''}
+                   </button>
+               ) : (
+                   // OPTION B: Guest -> Close & Check Email
+                   <button 
+                     onClick={onClose}
+                     // I changed the style to be 'primary' (white/10) so it looks like a main action, 
+                     // instead of the previous gray text which looked disabled.
+                     className="w-full py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors mt-4"
+                   >
+                     Close & Check Email
+                   </button>
+               )}
                 </div>
             )}
             </div>
@@ -247,7 +260,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tierId, 
           {!isFree && (
               <p className="text-[10px] text-zinc-500 flex items-center justify-center gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                Secured by M-Pesa Daraja & TicketSafi
+                Secured by Yadi Wallets
               </p>
           )}
         </div>

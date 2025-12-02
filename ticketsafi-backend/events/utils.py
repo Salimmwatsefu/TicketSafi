@@ -16,8 +16,7 @@ def create_rounded_rectangle_mask(size, radius):
 
 def generate_ticket_image(ticket):
     """
-    Generates a smaller Dark Mode Ticket Image with QR on the right
-    and credentials on the left. Optimized for file size.
+    Generates a Dark Mode Ticket Image with a LARGER QR code for easy scanning.
     """
     # 1. Setup Canvas
     width = 600
@@ -48,20 +47,20 @@ def generate_ticket_image(ticket):
     ticket_width = width - (margin * 2)
     current_y = margin
 
-    # 3. Draw Poster (smaller)
+    # 3. Draw Poster
     if ticket.event.poster_image:
         try:
             with default_storage.open(ticket.event.poster_image.name) as f:
                 poster = Image.open(f).convert("RGBA")
                 aspect = poster.height / poster.width
                 poster_h = int(ticket_width * aspect)
-                if poster_h > 400:  # smaller max height
-                    poster_h = 400
+                if poster_h > 450:  # Allow slightly taller posters
+                    poster_h = 450
                 poster = poster.resize((ticket_width, poster_h), Image.Resampling.BILINEAR)
                 
+                # Create mask for rounded corners
                 mask = create_rounded_rectangle_mask((ticket_width, poster_h), 20)
-                draw_mask = ImageDraw.Draw(mask)
-                draw_mask.rectangle((0, 20, ticket_width, poster_h), fill=255)
+                # Ensure bottom corners are square if merging with body, but here we keep floating style
                 
                 img.paste(poster, (margin, current_y), mask=mask)
                 current_y += poster_h + 20
@@ -71,10 +70,11 @@ def generate_ticket_image(ticket):
     else:
         current_y += 50
 
-    # 4. Draw Body Background
-    draw.rectangle([margin, current_y, width - margin, height - margin], fill=card_color)
-    content_y = current_y + 30
-    text_x = margin + 10
+    # 4. Draw Body Background (Start below poster)
+    body_start_y = current_y
+    draw.rectangle([margin, body_start_y, width - margin, height - margin], fill=card_color)
+    content_y = body_start_y + 30
+    text_x = margin + 20
 
     # 5. Event Title
     draw.text((text_x, content_y), ticket.event.title, font=font_title, fill=text_white)
@@ -82,15 +82,19 @@ def generate_ticket_image(ticket):
 
     # 6. Divider
     draw.line([(text_x, content_y), (width - text_x, content_y)], fill=accent_color, width=3)
-    content_y += 30
+    content_y += 40
 
-    # 7. QR + Details side-by-side
-    qr_size = 180
-    qr_box_padding = 10
+    # --- 7. LARGE QR CODE (Centered for visibility) ---
+    # Increased size from 180 to 280
+    qr_size = 280 
+    qr_box_padding = 15
     qr_box_size = qr_size + qr_box_padding * 2
-    qr_x = width - margin - qr_box_size
+    
+    # Center the QR code horizontally
+    qr_x = (width - qr_box_size) // 2
     qr_y = content_y
 
+    # White background box for QR
     draw.rounded_rectangle(
         (qr_x, qr_y, qr_x + qr_box_size, qr_y + qr_box_size),
         radius=15, fill=(255,255,255)
@@ -98,39 +102,51 @@ def generate_ticket_image(ticket):
 
     qr = qrcode.QRCode(
         error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=6,
+        box_size=10, # Increased box size for better resolution
         border=0
     )
     qr.add_data(ticket.qr_code_hash)
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white").resize((qr_size, qr_size))
     img.paste(qr_img, (qr_x + qr_box_padding, qr_y + qr_box_padding))
+    
+    content_y = qr_y + qr_box_size + 40 # Move content below QR
 
-    # Draw ticket credentials on left side
-    def draw_row(label, value, x, y, color=text_white):
-        draw.text((x, y), label, font=font_label, fill=text_grey)
-        draw.text((x, y + 28), str(value), font=font_value, fill=color)
+    # --- 8. Ticket Details (Below QR) ---
+    def draw_row_centered(label, value, y, color=text_white):
+        # Calculate center position for text
+        bbox_label = draw.textbbox((0,0), label, font=font_label)
+        label_w = bbox_label[2] - bbox_label[0]
+        
+        bbox_val = draw.textbbox((0,0), str(value), font=font_value)
+        val_w = bbox_val[2] - bbox_val[0]
+        
+        draw.text(((width - label_w) / 2, y), label, font=font_label, fill=text_grey)
+        draw.text(((width - val_w) / 2, y + 28), str(value), font=font_value, fill=color)
         return y + 70
 
-    left_x = margin + 10
     row_y = content_y
     date_str = ticket.event.start_datetime.strftime('%d %b %Y')
     time_str = ticket.event.start_datetime.strftime('%I:%M %p')
-    row_y = draw_row("DATE & TIME", f"{date_str} • {time_str}", left_x, row_y)
-    row_y = draw_row("LOCATION", ticket.event.location_name, left_x, row_y)
-    row_y = draw_row("TICKET TYPE", ticket.tier.name, left_x, row_y)
+    
+    row_y = draw_row_centered("DATE & TIME", f"{date_str} • {time_str}", row_y)
+    row_y = draw_row_centered("LOCATION", ticket.event.location_name, row_y)
+    
+    # Attendee and Type side-by-side if space allows, or stacked
+    row_y = draw_row_centered("TICKET TYPE", ticket.tier.name, row_y, color=accent_color)
+    
     attendee = ticket.attendee_name or "Guest"
-    if len(attendee) > 20: attendee = attendee[:18] + "..."
-    row_y = draw_row("ATTENDEE", attendee, left_x, row_y)
+    if len(attendee) > 25: attendee = attendee[:22] + "..."
+    row_y = draw_row_centered("ATTENDEE", attendee, row_y)
 
     # Footer ID
-    footer_y = max(row_y, qr_y + qr_box_size) + 20
+    footer_y = row_y + 30
     ticket_id = f"ID: {str(ticket.id).split('-')[0].upper()}"
     bbox = draw.textbbox((0,0), ticket_id, font=font_small)
     text_w = bbox[2] - bbox[0]
     draw.text(((width - text_w) / 2, footer_y), ticket_id, font=font_small, fill=text_grey)
 
-    final_img = img.crop((0, 0, width, footer_y + 40))
+    final_img = img.crop((0, 0, width, footer_y + 50))
     
     buffer = BytesIO()
     final_img.save(buffer, format="PNG", optimize=True)
@@ -159,7 +175,7 @@ def send_ticket_email(ticket):
     
     Enjoy the event!
     Yadi Tickets Team
-    https://yadi.app
+    https://tickets.yadi.app
     """
 
     email = EmailMessage(

@@ -54,27 +54,26 @@ class CustomRegisterSerializer(serializers.ModelSerializer):
         if data['password'] != data['password2']:
             raise serializers.ValidationError({"password": "Passwords must match."})
             
-        # --- HARD-CODED REUSABLE CODES LIST ---
-        REUSABLE_CODES = ['YADI-ORG-2025', 'YADI-ORG-2026']
+        REUSABLE_CODES = ['YADI-ORG-1', 'YADI-ORG-2']
         
-        # --- ORGANIZER INVITATION CODE VALIDATION ---
         if data.get('role') == User.Role.ORGANIZER:
-            code = data.get('invitation_code')
-            if not code:
-                raise serializers.ValidationError({"invitation_code": "An invitation code is required to register as an Organizer."})
+            raw_code = data.get('invitation_code', '')
+            code = raw_code.strip() # Remove spaces
             
-            # 1. Check Reusable Codes (Bypass DB lookup if matched)
+            if not code:
+                raise serializers.ValidationError({"invitation_code": "An invitation code is required."})
+            
+            # 1. Check Reusable/Hardcoded
             if code.upper() in REUSABLE_CODES:
-                # Use a dictionary to flag the code as reusable, as it's not a model instance
-                data['invitation_data'] = {'code': code.upper(), 'reusable': True} 
-                return data
+                # Mark as reusable so save() doesn't try to delete it from DB
+                data['invitation_data'] = {'code': code.upper(), 'reusable': True}
+                return data # Validation passed!
 
-            # 2. Check Database Codes (Original logic)
+            # 2. Check Database
             try:
-                # Check for an active, SINGLE-USE code
                 invitation = OrganizerInvitationCode.objects.get(code=code, is_active=True)
-                data['invitation_data'] = invitation # Store instance for use in save()
-                data['invitation_data'].reusable = False 
+                data['invitation_data'] = invitation
+                # Validation passed, continue
             except OrganizerInvitationCode.DoesNotExist:
                 raise serializers.ValidationError({"invitation_code": "Invalid or expired invitation code."})
 

@@ -18,7 +18,7 @@ interface AuthContextType {
   login: (data: any) => Promise<void>;
   register: (data: any) => Promise<void>;
   // FIX: Add the optional role argument here so TypeScript allows it
-  loginWithGoogle: (token: string, role?: string) => Promise<void>; 
+  loginWithGoogle: (token: string, role?: string, code?: string) => Promise<void>; 
   logout: () => Promise<void>;
   checkAuthStatus: () => Promise<void>;
 }
@@ -61,12 +61,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 4. Google Login Action
   // The logic here is perfect. It sends the role to your custom Adapter.
-  const loginWithGoogle = async (token: string, role = 'ATTENDEE') => {
-    // CHANGE: Append ?role=${role} to the URL
-    await api.post(`/api/auth/google/?role=${role}`, {
+  const loginWithGoogle = async (token: string, role = 'ATTENDEE', code?: string) => {
+
+    const url = `/api/auth/google/?role=${role}&invitation_code=${code || ''}`;
+    await api.post(url, {
         access_token: token,
-        role: role 
+        role: role,
+        invitation_code: code,
     });
+    
     await checkAuthStatus();
   };
 

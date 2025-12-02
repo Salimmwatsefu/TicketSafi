@@ -21,6 +21,7 @@ import StoresListPage from './pages/StoresListPage';
 import StorePage from './pages/StorePage';
 import EditStorePage from './pages/organizer/EditStorePage';
 import PayoutsPage from './pages/organizer/PayoutsPage';
+import { CookieBanner } from './components/CookieBanner';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -48,6 +49,8 @@ function App() {
       <AuthProvider>
         <Router>
           <ScrollToTop />
+
+          <CookieBanner />
           <Routes>
             {/* --- AUTH ROUTES --- */}
             <Route path="/auth/select" element={<AuthSelectionPage />} />
