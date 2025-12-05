@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, ArrowLeft, Share2, Info, CheckCircle2, Ticket as TicketIcon, ExternalLink, Store } from 'lucide-react';
+import { MapPin, Calendar, ArrowLeft, Share2, Info, CheckCircle2, Lock, Ticket as TicketIcon, ExternalLink, Store } from 'lucide-react';
 import { useEventDetails } from '../hooks/useEventDetails';
 import CheckoutModal from '../components/CheckoutModal';
 
@@ -148,9 +148,16 @@ const EventDetailsPage = () => {
                       
                       {/* Event Header Info */}
                       <div className="space-y-4">
+                        {/* --- PRIVATE BADGE --- */}
+                              {event.isPrivate && (
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-xs font-bold tracking-wider uppercase text-yellow-500">
+                                      <Lock className="w-3 h-3 mr-1" /> Private Event
+                                  </span>
+                              )}
                           <span className="inline-block px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs font-bold tracking-wider uppercase text-zinc-300">
                               {event.category}
                           </span>
+                          
                           <h1 className="text-4xl md:text-5xl font-heading font-bold text-white leading-tight">
                               {event.title}
                           </h1>

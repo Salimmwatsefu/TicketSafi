@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Download, User, Mail, Calendar, DollarSign, CheckCircle, Users, ChevronDown, ChevronUp, Clock, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, Download, User, Mail, Calendar, DollarSign, CheckCircle, Users, ChevronDown, ChevronUp, Clock, Shield, ChevronLeft, ChevronRight, Link, Check, } from 'lucide-react';
 import api from '../../api/axios';
 import { useEventDetails } from '../../hooks/useEventDetails';
 
@@ -30,6 +30,7 @@ interface GroupedAttendee {
 const OrganizerEventDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isCopied, setIsCopied] = useState(false);
   
   const { event, loading: eventLoading } = useEventDetails(id);
 
@@ -55,6 +56,17 @@ const OrganizerEventDetailsPage = () => {
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [loadingAttendees, setLoadingAttendees] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleCopyLink = () => {
+      // Construct the public URL
+      const publicUrl = `${window.location.origin}/event/${id}`;
+      
+      navigator.clipboard.writeText(publicUrl);
+      setIsCopied(true);
+      
+      // Reset icon after 2 seconds
+      setTimeout(() => setIsCopied(false), 2000);
+  };
   
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -190,6 +202,21 @@ const OrganizerEventDetailsPage = () => {
             </div>
             
             <div className="flex gap-3">
+                <button 
+                    onClick={handleCopyLink}
+                    className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center"
+                    title="Copy Public Link"
+                >
+                    {isCopied ? (
+                        <>
+                            <Check className="w-4 h-4 mr-2" /> Copied!
+                        </>
+                    ) : (
+                        <>
+                            <Link className="w-4 h-4 mr-2" /> Share Link
+                        </>
+                    )}
+                </button>
                 <button 
                     onClick={() => navigate(`/organizer/events/${id}/edit`)}
                     className="px-4 py-2 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center"

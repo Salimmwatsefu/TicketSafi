@@ -23,6 +23,7 @@ import EditStorePage from './pages/organizer/EditStorePage';
 import PayoutsPage from './pages/organizer/PayoutsPage';
 import { CookieBanner } from './components/CookieBanner';
 import TermsPage from './pages/TermsPage';
+import PaymentCallbackPage from './pages/PaymentCallbackPage';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -82,6 +83,11 @@ function App() {
                 <EventDetailsPage />
               </MainLayout>
             } />
+
+            
+
+
+<Route path="/payment/callback" element={<PaymentCallbackPage />} />
 
             <Route path="/ticket/:id" element={
               <MainLayout>

@@ -25,7 +25,8 @@ export interface Event {
   description?: string;
   tiers?: TicketTier[];
   organizer_name?: string;
-  store?: Store | null; 
+  store?: Store | null;
+  isPrivate?: boolean;
 }
 
 

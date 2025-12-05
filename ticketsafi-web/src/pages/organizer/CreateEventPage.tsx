@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Upload, Plus, Trash2, DollarSign, Ticket, CheckCircle, Layers, Loader2, X, Store } from 'lucide-react';
+import { Calendar, MapPin, Upload, Plus, Trash2, DollarSign, Lock, Ticket, CheckCircle, Layers, Loader2, X, Store } from 'lucide-react';
 import api from '../../api/axios';
 
 interface TierFormData {
@@ -31,6 +31,8 @@ const CreateEventPage = () => {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isPrivate, setIsPrivate] = useState(false);
   
   // Form State
   const [title, setTitle] = useState('');
@@ -103,6 +105,7 @@ const CreateEventPage = () => {
       formData.append('description', description);
       formData.append('category', category);
       formData.append('location_name', location);
+       formData.append('is_private', isPrivate.toString());
       formData.append('start_datetime', new Date(startDate).toISOString());
       formData.append('end_datetime', new Date(endDate).toISOString());
       formData.append('is_offline_ready', 'true');
@@ -200,6 +203,20 @@ const CreateEventPage = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
               </div>
+            </div>
+
+            {/* Private Event Toggle */}
+            <div 
+                onClick={() => setIsPrivate(!isPrivate)}
+                className={`flex items-center p-4 rounded-xl cursor-pointer border transition-all ${isPrivate ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-black/20 border-white/10 hover:bg-white/5'}`} 
+            >
+                <div className={`w-5 h-5 rounded border flex items-center justify-center mr-4 transition-colors ${isPrivate ? 'bg-yellow-500 border-yellow-500' : 'border-zinc-500'}`}>
+                    {isPrivate && <Lock className="w-3 h-3 text-black" />}
+                </div>
+                <div>
+                    <p className={`text-sm font-bold ${isPrivate ? 'text-yellow-500' : 'text-white'}`}>Private Event</p>
+                    <p className="text-xs text-zinc-400">Hidden from public listings. Only accessible via direct link.</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

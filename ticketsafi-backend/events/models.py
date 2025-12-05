@@ -59,6 +59,7 @@ class Event(models.Model):
     
     is_offline_ready = models.BooleanField(default=False)
     whatsapp_integration_enabled = models.BooleanField(default=False)
+    is_private = models.BooleanField(default=False, help_text="If true, hidden from public listings but accessible via link.")
     
     is_published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

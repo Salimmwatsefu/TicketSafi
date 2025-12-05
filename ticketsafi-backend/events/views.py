@@ -75,7 +75,7 @@ class EventListView(generics.ListAPIView):
     serializer_class = EventListSerializer
 
     def get_queryset(self):
-        queryset = Event.objects.filter(is_published=True, end_datetime__gt=timezone.now()).order_by('start_datetime')
+        queryset = Event.objects.filter(is_published=True, is_private=False, end_datetime__gt=timezone.now()).order_by('start_datetime')
         
         # Filtering logic
         q = self.request.query_params.get('q')
@@ -258,11 +258,14 @@ class InitiatePaymentView(views.APIView):
                     ticket_ref=ticket_ref
                 )
 
+                # --- CHANGE STARTS HERE ---
                 return Response({
                     "status": "Payment Initiated",
                     "transaction_ref": ticket_ref,
-                    "mpesa_ref": wallet_response.get('mpesa_ref')
+                    "authorization_url": wallet_response.get('authorization_url'), # Pass this through!
+                    "access_code": wallet_response.get('access_code')
                 }, status=status.HTTP_202_ACCEPTED)
+                # --- CHANGE ENDS HERE ---
 
             except Exception as e:
                 payment.status = Payment.Status.FAILED
@@ -727,3 +730,22 @@ class ExportAttendeesCSVView(views.APIView):
             writer.writerow(ticket)
 
         return response
+    
+
+
+class PaymentStatusView(APIView):
+    """
+    Checks the status of a payment by its reference code.
+    Used by the frontend to confirm payment completion.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, reference):
+        try:
+            payment = Payment.objects.get(reference_code=reference)
+            return Response({
+                "status": payment.status, # PENDING, COMPLETED, or FAILED
+                "reference": payment.reference_code
+            })
+        except Payment.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=404)

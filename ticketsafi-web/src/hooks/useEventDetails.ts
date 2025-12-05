@@ -12,6 +12,7 @@ interface BackendEventDetail {
     description: string;
     organizer_name: string;
     category: string; 
+    is_private: boolean;
     tiers: {
         id: string;
         name: string;
@@ -57,6 +58,7 @@ export const useEventDetails = (eventId: string | undefined) => {
                     category: data.category as any,
                     description: data.description,
                     organizer_name: data.organizer_name,
+                    isPrivate: data.is_private,
                     tiers: data.tiers.map((t) => ({
                         id: t.id,
                         name: t.name,

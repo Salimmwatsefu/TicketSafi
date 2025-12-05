@@ -1,5 +1,5 @@
 from django.urls import include, path
-from .views import ( ActivateGuestAccountView, EventListView, EventDetailView, ExportAttendeesCSVView, GetWalletLinkView, InitiatePaymentView, OrganizerEventUpdateView, OrganizerWalletProxyView, UserTicketsView, TicketDetailView, OrganizerEventCreateView, OrganizerDashboardView, OrganizerEventListView, OrganizerEventAttendeesView, VerifyTicketView,
+from .views import ( ActivateGuestAccountView, EventListView, EventDetailView, ExportAttendeesCSVView, GetWalletLinkView, InitiatePaymentView, OrganizerEventUpdateView, OrganizerWalletProxyView, PaymentStatusView, UserTicketsView, TicketDetailView, OrganizerEventCreateView, OrganizerDashboardView, OrganizerEventListView, OrganizerEventAttendeesView, VerifyTicketView,
                      ScannerListView, ScannerCreateView, ActivateWalletView
                     
                     )
@@ -48,6 +48,8 @@ urlpatterns = [
     path('auth/guest/activate/', ActivateGuestAccountView.as_view(), name='guest-activate'),
 
     path('organizer/events/<uuid:id>/export/', ExportAttendeesCSVView.as_view(), name='organizer-event-export'),
+
+    path('pay/verify/<str:reference>/', PaymentStatusView.as_view(), name='pay-verify'),
 
     
 

@@ -163,7 +163,7 @@ class EventListSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'start_datetime', 'end_datetime', 'location_name', 
-            'poster_image', 'lowest_price', 'category', 'organizer_name', 'store'
+            'poster_image', 'lowest_price', 'category', 'organizer_name', 'store', 'is_private'
         ]
 
     def get_lowest_price(self, obj):
@@ -220,7 +220,7 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'category', 
             'location_name', 'start_datetime', 'end_datetime', 
-            'poster_image', 'is_published', 'tiers', 'store'
+            'poster_image', 'is_published', 'is_private', 'tiers', 'store'
         ]
         
     def validate_tiers(self, value):

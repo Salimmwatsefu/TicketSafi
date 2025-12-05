@@ -35,7 +35,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tierId, 
   const isFree = totalPriceValue === 0;
 
   const handlePayment = async () => {
-    // Validation
+    // 1. Validation Logic
     if (!isFree) {
         if (!phoneNumber.startsWith('254') || phoneNumber.length !== 12) {
             setError('Please enter a valid M-Pesa number (e.g., 2547... or 2541...)');
@@ -43,7 +43,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tierId, 
         }
     }
 
-    // Guest Validation
     if (!user) {
         if (!guestEmail.includes('@')) {
             setError('Please enter a valid email address for ticket delivery.');
@@ -59,43 +58,47 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tierId, 
       setStep('processing');
       setError('');
       
-      // Prepare Payload
+      // 2. Define Payload (THIS MUST BE HERE)
       const payload: any = {
         tier_id: tierId,
-        // Send a default phone for free tickets to satisfy the backend model constraint
         phone_number: isFree ? '254700000000' : phoneNumber, 
         quantity: quantity, 
       };
 
-      // Append guest details if needed
       if (!user) {
           payload.email = guestEmail;
           payload.name = guestName;
       }
       
+      // 3. Send Request
       const response = await api.post('/api/pay/initiate/', payload);
 
-      if (response.data.ticket_id) {
-          setTicketId(response.data.ticket_id);
-      }
-
-      // Free tickets are instantly successful
+      // 4. Handle Response
       if (isFree) {
+          // Free tickets are instant
+          if (response.data.ticket_id) {
+             setTicketId(response.data.ticket_id);
+          }
           setStep('success');
-      } else {
-          // Paid tickets remain in processing to simulate waiting for webhook
-          setTimeout(() => {
-              setStep('success'); 
-          }, 2000);
+      } 
+      else if (response.data.authorization_url) {
+          // PAID TICKETS: Redirect to Paystack
+          window.location.href = response.data.authorization_url;
+      }
+      else {
+          // Fallback error
+          console.error("No redirect URL:", response.data);
+          setError("Payment service unavailable. Please try again.");
+          setStep('input');
       }
 
     } catch (err: any) {
+      console.error(err);
       setStep('input');
       const msg = err.response?.data?.error || 'Booking failed. Please try again.';
       setError(msg);
     }
   };
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div 
